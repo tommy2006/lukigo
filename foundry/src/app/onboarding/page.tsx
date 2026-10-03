@@ -3,12 +3,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Check, Pencil, Sparkles, Wand2 } from "lucide-react";
 import { RequireAuth } from "@/components/auth";
 import { askAI } from "@/lib/ai/client";
 import { MODULE_MAP } from "@/lib/modules";
 import type { StackItem } from "@/lib/types";
-import { Button, Card, Input, Textarea, Tip, cx } from "@/components/ui";
+import { Button, Card, Field, Input, Textarea, Tip, cx } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import type { OnboardQuestion } from "@/lib/ai/tasks/core";
 
@@ -55,6 +55,7 @@ function Onboarding() {
       r.stack = (r.stack || []).filter((s) => MODULE_MAP[s.id]).map((s) => ({
         ...s, submodules: (s.submodules || []).filter((x) => MODULE_MAP[s.id].submodules.some((m) => m.id === x)),
       }));
+      if (!r.emoji?.trim()) r.emoji = "🌱";
       setRec(r); setStep(2);
     } finally { setLoading(false); }
   }
@@ -98,7 +99,7 @@ function Onboarding() {
           {step === 0 && (
             <motion.div key="s0" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">What do you want to <span className="serif italic font-normal grad-text">change?</span></h1>
-              <p className="text-ink-2 mt-3">Describe your project in your own words — who you want to help, how, and with whom. Messy is fine. Foundry&apos;s AI will turn it into a ready-to-run toolkit.</p>
+              <p className="text-ink-2 mt-3">Describe your project in your own words — who you want to help, how, and with whom. Messy is fine. Lukigo&apos;s AI will turn it into a ready-to-run toolkit.</p>
               <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} className="mt-6 min-h-40 text-base" placeholder="e.g. I want to start a club that…" autoFocus />
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="text-xs text-ink-3 py-1.5">Need inspiration?</span>
@@ -147,11 +148,27 @@ function Onboarding() {
           {step === 2 && rec && (
             <motion.div key="s2" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-5">
               <h1 className="text-4xl font-extrabold tracking-tight">Here&apos;s your <span className="serif italic font-normal grad-text">starter kit.</span></h1>
-              <Card className="flex gap-4 items-center">
-                <Input value={rec.emoji} onChange={(e) => setRec({ ...rec, emoji: e.target.value })} className="w-16 text-3xl text-center p-2" />
-                <div className="flex-1 space-y-2">
-                  <Input value={rec.name} onChange={(e) => setRec({ ...rec, name: e.target.value })} className="text-xl font-bold" />
-                  <Input value={rec.tagline} onChange={(e) => setRec({ ...rec, tagline: e.target.value })} className="text-ink-2" />
+              <Card>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="font-extrabold">Name your project</div>
+                    <div className="text-sm text-ink-3">AI suggested these — change anything you like. You can edit them again later.</div>
+                  </div>
+                  <Pencil className="size-4 text-ink-3" />
+                </div>
+                <div className="grid grid-cols-[72px_1fr] gap-4 items-start">
+                  <Field label="Icon">
+                    <input value={rec.emoji} onChange={(e) => setRec({ ...rec, emoji: e.target.value })} maxLength={4} aria-label="Project emoji"
+                      className="!w-[72px] h-[72px] rounded-2xl bg-white/[0.04] border border-line text-4xl text-center outline-none focus:border-accent/60" />
+                  </Field>
+                  <div className="space-y-3 min-w-0">
+                    <Field label="Project name">
+                      <Input value={rec.name} onChange={(e) => setRec({ ...rec, name: e.target.value })} className="text-lg font-bold" placeholder="e.g. CodeBridge" />
+                    </Field>
+                    <Field label="Tagline" hint="one short line about what you do">
+                      <Input value={rec.tagline} onChange={(e) => setRec({ ...rec, tagline: e.target.value })} placeholder="e.g. Teaching kids to code, one Saturday at a time." />
+                    </Field>
+                  </div>
                 </div>
               </Card>
               <div className="grid sm:grid-cols-2 gap-3">

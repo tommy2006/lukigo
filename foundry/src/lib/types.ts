@@ -16,7 +16,7 @@ export interface StackItem {
   submodules: string[];
 }
 
-export type ModuleId = "hr" | "events" | "fundraising" | "publicity" | "finance";
+export type ModuleId = "hr" | "events" | "fundraising" | "publicity" | "finance" | "sponsors";
 
 export interface Project {
   id: string;
@@ -31,6 +31,73 @@ export interface Project {
   webhook_secret: string;
   created_by: string;
   created_at: string;
+  // portal listing (patch-002)
+  is_listed: boolean;
+  location: string | null;
+  skills: string[];
+  looking_for: string | null;
+  open_roles: OpenRole[];
+  sponsor_brief: SponsorBrief;
+}
+
+export type PortalRole = "member" | "contributor" | "volunteer" | "donor" | "partner";
+export interface OpenRole { k: PortalRole; on: boolean; slots: number }
+
+export interface SponsorBrief {
+  org_type?: string;
+  region?: string;          // where sponsors should be (e.g. "Vietnam", "US - California", "Global")
+  beneficiaries?: string;
+  budget?: string;
+  needs?: string[];         // cash, in-kind, mentorship, media, venue, implementation partner, travel/scholarship
+  achievements?: string;
+  timeline?: string;
+}
+
+export interface SponsorLead {
+  id: string;
+  project_id: string;
+  name: string;
+  type: string | null;
+  country: string | null;
+  focus: string | null;
+  fit: string | null;
+  approach: string | null;
+  typical_amount: string | null;
+  cycle: string | null;
+  website: string | null;
+  fit_score: number;
+  confidence: "high" | "medium" | "low" | null;
+  source: "manual" | "ai";
+  stage: "idea" | "research" | "contacted" | "talking" | "won" | "declined";
+  assignee_member_id: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  amount_asked: number | null;
+  amount_committed: number | null;
+  deadline: string | null;
+  next_step: string | null;
+  draft: string | null;
+  log: { t: number; by: string | null; text: string }[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JoinRequest {
+  id: string;
+  project_id: string;
+  user_id: string;
+  role: PortalRole;
+  message: string | null;
+  status: "pending" | "accepted" | "declined" | "withdrawn";
+  created_at: string;
+  decided_at: string | null;
+}
+
+/** Row returned by rpc("discover_projects") — safe public fields only. */
+export interface ListedProject {
+  id: string; name: string; tagline: string | null; description: string | null; cause: string | null;
+  emoji: string | null; color: string | null; location: string | null; skills: string[]; looking_for: string | null;
+  open_roles: OpenRole[]; modules: { stack: StackItem[] }; member_count: number; role_counts: Record<string, number>; created_at: string;
 }
 
 export interface Member {
@@ -49,6 +116,7 @@ export interface Member {
   hours: number;
   notes: string | null;
   joined_at: string;
+  portal_role?: PortalRole | null;
 }
 
 export interface EventRow {

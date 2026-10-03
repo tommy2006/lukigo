@@ -5,21 +5,23 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Copy, ArrowRight, Wand2 } from "lucide-react";
 import { seedDemo } from "@/lib/demo-seed";
+import { ListingCard } from "@/components/portal/listing-card";
+import { JoinRequests } from "@/components/portal/join-requests";
 import { useProject } from "@/components/project-context";
 import { supabase } from "@/lib/supabase";
 import { MODULE_MAP, hasModule } from "@/lib/modules";
 import { ROLE_MAP, roleLabel } from "@/lib/roles";
-import type { Donation, EventRow, Fundraiser, SocialPost, Task, Transaction } from "@/lib/types";
+import type { Donation, EventRow, Fundraiser, SocialPost, SponsorLead, Task, Transaction } from "@/lib/types";
 import { Avatar, Badge, Button, Card, PageHeader, Progress, Tip, cx, fmtDate, fmtMoney } from "@/components/ui";
 
 export default function OverviewPage() {
   return <Suspense><Overview /></Suspense>;
 }
 
-interface Data { events: EventRow[]; tasks: Task[]; fundraisers: Fundraiser[]; donations: Donation[]; posts: SocialPost[]; tx: Transaction[]; accounts: number }
+interface Data { events: EventRow[]; tasks: Task[]; fundraisers: Fundraiser[]; donations: Donation[]; posts: SocialPost[]; tx: Transaction[]; accounts: number; leads: SponsorLead[] }
 
 function Overview() {
-  const { project, stack, me, members, reloadMembers } = useProject();
+  const { project, stack, me, members, reload, reloadMembers } = useProject();
   const [seeding, setSeeding] = useState(false);
   const [tick, setTick] = useState(0);
   const welcome = useSearchParams().get("welcome");
@@ -37,11 +39,12 @@ function Overview() {
       sb.from("social_posts").select("*").eq("project_id", pid),
       sb.from("transactions").select("*").eq("project_id", pid),
       sb.from("social_accounts").select("id", { count: "exact", head: true }).eq("project_id", pid),
-    ]).then(([e, t, f, dn, p, tx, acc]) => setD({
+      hasModule(stack, "sponsors") ? sb.from("sponsor_leads").select("*").eq("project_id", pid) : Promise.resolve({ data: [] }),
+    ]).then(([e, t, f, dn, p, tx, acc, sl]) => setD({
       events: (e.data as EventRow[]) || [], tasks: (t.data as Task[]) || [], fundraisers: (f.data as Fundraiser[]) || [],
-      donations: (dn.data as Donation[]) || [], posts: (p.data as SocialPost[]) || [], tx: (tx.data as Transaction[]) || [], accounts: acc.count || 0,
+      donations: (dn.data as Donation[]) || [], posts: (p.data as SocialPost[]) || [], tx: (tx.data as Transaction[]) || [], accounts: acc.count || 0, leads: (sl.data as SponsorLead[]) || [],
     }));
-  }, [project.id, tick]);
+  }, [project.id, tick, stack]);
 
   async function loadDemo() {
     setSeeding(true);
@@ -74,6 +77,11 @@ function Overview() {
       if (s.id === "fundraising") { stat = fmtMoney(raised); sub = goal ? `of ${fmtMoney(goal)} goal` : "raised"; }
       if (s.id === "publicity") { stat = `${d.posts.filter((p) => Date.now() - new Date(p.posted_at).getTime() < 7 * 864e5).length}`; sub = "posts this week"; }
       if (s.id === "finance") { stat = fmtMoney(balance); sub = "current balance"; }
+      if (s.id === "sponsors") {
+        const won = d.leads.filter((l) => l.stage === "won");
+        stat = won.length ? fmtMoney(won.reduce((n, l) => n + Number(l.amount_committed || 0), 0)) : `${d.leads.length}`;
+        sub = won.length ? `committed · ${d.leads.length} sponsors tracked` : "sponsors tracked";
+      }
     }
     return { s, m, stat, sub };
   });
@@ -120,6 +128,10 @@ function Overview() {
         </motion.div>
       )}
 
+      {me && (me.role === "president" || me.role === "vice_president" || (me.role === "head" && me.department === "HR")) && (
+        <JoinRequests projectId={project.id} onDecided={reloadMembers} />
+      )}
+
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {tiles.map(({ s, m, stat, sub }, i) => (
           <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
@@ -138,6 +150,8 @@ function Overview() {
           </motion.div>
         ))}
       </div>
+
+      {me && (me.role === "president" || me.role === "vice_president") && <ListingCard project={project} onSaved={reload} />}
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>

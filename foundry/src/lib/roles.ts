@@ -18,7 +18,16 @@ export const DEPARTMENT_FOR_MODULE: Record<ModuleId, string> = {
   fundraising: "Fundraising",
   publicity: "Publicity",
   finance: "Finance",
+  sponsors: "Fundraising",
 };
+
+export const PORTAL_ROLES: { k: import("./types").PortalRole; label: string; blurb: string; team: boolean }[] = [
+  { k: "member", label: "Member", blurb: "Join the core team long-term and get access to the project workspace.", team: true },
+  { k: "contributor", label: "Contributor", blurb: "Help with specific tasks or skills; also gets workspace access.", team: true },
+  { k: "volunteer", label: "Volunteer", blurb: "Help out at events and short-term activities.", team: false },
+  { k: "donor", label: "Donor", blurb: "Support the project financially.", team: false },
+  { k: "partner", label: "Mentor / Partner", blurb: "Mentors, businesses or organizations who want to collaborate.", team: false },
+];
 
 export const DEPARTMENTS = ["Leadership", "HR", "Events", "Fundraising", "Publicity", "Finance", "Logistics", "Outreach"];
 
@@ -36,7 +45,7 @@ export function can(me: Pick<Member, "role" | "department"> | null | undefined, 
   if (action === "view") return true;
   if (r === "head" && me.department === DEPARTMENT_FOR_MODULE[module]) return true;
   if (r === "secretary") return ["events", "publicity"].includes(module) || (module === "hr" && action === "edit");
-  if (r === "treasurer") return ["fundraising", "finance"].includes(module);
+  if (r === "treasurer") return ["fundraising", "finance", "sponsors"].includes(module);
   if (r === "head") return action === "edit" && module === "events"; // heads can assign event tasks
   // members: can add day-to-day records but not manage
   if (r === "member") return action === "edit" && ["events", "fundraising", "publicity"].includes(module);

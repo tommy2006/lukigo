@@ -12,6 +12,7 @@ import { MODULE_MAP } from "@/lib/modules";
 import { ROLE_MAP, roleLabel } from "@/lib/roles";
 import { AIBox, Badge, Button, Card, Empty, Field, Input, Modal, Progress, Tip, fmtDate, todayISO } from "@/components/ui";
 import { Logo } from "@/components/logo";
+import { PortalButton } from "@/components/portal/portal-button";
 import type { HomeSummaryInput } from "@/lib/ai/tasks/core";
 
 export default function HomePage() {
@@ -83,6 +84,7 @@ function Home() {
       <header className="flex items-center justify-between px-6 md:px-10 py-5 border-b border-line">
         <Logo />
         <div className="flex items-center gap-3">
+          <PortalButton />
           <span className="text-sm text-ink-2 max-sm:hidden">{profile?.full_name}</span>
           <Button variant="ghost" size="sm" onClick={() => supabase().auth.signOut()}><LogOut className="size-4" /></Button>
         </div>
@@ -108,7 +110,7 @@ function Home() {
           <div className="space-y-4">
             <Empty emoji="🌱" title="You're not in any projects yet"
               action={<div className="flex justify-center gap-2"><Button onClick={() => router.push("/onboarding")}><Plus className="size-4" /> Found your first project</Button><Button variant="outline" onClick={() => setJoinOpen(true)}>Join with a code</Button></div>}>
-              Got an idea for helping your community? Foundry will walk you through setting it up in about 3 minutes. Or, if a friend already started one, ask them for the 6-letter invite code.
+              Got an idea for helping your community? Lukigo will walk you through setting it up in about 3 minutes. Or, if a friend already started one, ask them for the 6-letter invite code.
             </Empty>
           </div>
         ) : (

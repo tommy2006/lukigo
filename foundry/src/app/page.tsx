@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { PortalButton } from "@/components/portal/portal-button";
 import { MODULES } from "@/lib/modules";
 
 export default function Landing() {
@@ -7,7 +8,10 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between px-6 md:px-12 py-6">
         <Logo />
-        <Link href="/login" className="text-sm font-semibold text-ink-2 hover:text-ink">Sign in →</Link>
+        <div className="flex items-center gap-4">
+          <PortalButton />
+          <Link href="/login" className="text-sm font-semibold text-ink-2 hover:text-ink">Sign in →</Link>
+        </div>
       </header>
       <main className="flex-1 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center px-6 md:px-12 pb-16 max-w-7xl mx-auto w-full">
         <div>
@@ -19,7 +23,7 @@ export default function Landing() {
             <span className="serif italic font-normal grad-text">Then run it.</span>
           </h1>
           <p className="text-lg text-ink-2 mt-6 max-w-xl">
-            Tell Foundry about your idea. It snaps together the exact toolkit you need — team roster, event planner,
+            Tell Lukigo about your idea. It snaps together the exact toolkit you need — team roster, event planner,
             fundraising tracker, social pulse, finances — into <em className="serif text-ink text-xl">your own</em> project management app.
             No spreadsheets.
           </p>

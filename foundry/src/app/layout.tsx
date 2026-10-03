@@ -7,7 +7,7 @@ const instrument = Instrument_Serif({ variable: "--font-instrument", subsets: ["
 const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Foundry — build & run your community project",
+  title: "Lukigo — build & run your community project",
   description: "Snap together the operating system for your student-led community service project.",
 };
 

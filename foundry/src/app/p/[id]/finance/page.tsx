@@ -142,7 +142,7 @@ function Finance() {
               <h2 className="text-lg font-bold">Merch <span className="serif italic grad-text font-normal">inventory</span></h2>
               {canEdit && <Button size="sm" variant="outline" onClick={() => setItemModal("new")}><Plus className="size-4" />Add item</Button>}
             </div>
-            {items.length === 0 ? <Tip>Selling shirts, stickers or bracelets? Add each item with its price and what it cost you to make — Foundry will track stock and profit per sale.</Tip> : (
+            {items.length === 0 ? <Tip>Selling shirts, stickers or bracelets? Add each item with its price and what it cost you to make — Lukigo will track stock and profit per sale.</Tip> : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {items.map((it) => {
                   const sold = sum(sales.filter((s) => s.item_id === it.id), (s) => s.quantity);

@@ -121,6 +121,25 @@ export const MODULES: ModuleDef[] = [
       { id: "reports", name: "AI finance report", blurb: "A plain-English money summary for your advisor or school.", defaultOn: false },
     ],
   },
+  {
+    id: "sponsors",
+    name: "Sponsor Finder",
+    short: "Sponsors",
+    tagline: "AI finds real sponsors & grants, tracks your outreach, and drafts the letters.",
+    emoji: "🤝",
+    color: "#ffb3d1",
+    ink: "#6e1745",
+    core: false,
+    provides: ["sponsors"],
+    consumes: ["people"],
+    submodules: [
+      { id: "brief", name: "Sponsorship brief", blurb: "One page describing your project, budget and needs — sponsors and AI read this.", defaultOn: true },
+      { id: "ai_finder", name: "AI sponsor search", blurb: "AI suggests real foundations, companies and grant programs that fit you.", defaultOn: true },
+      { id: "pipeline", name: "Outreach board", blurb: "Drag each sponsor from Saved → Contacted → In talks → Committed.", defaultOn: true },
+      { id: "letters", name: "AI letter writer", blurb: "Draft intro emails, proposals, follow-ups and thank-you letters.", defaultOn: true },
+      { id: "deadlines", name: "Deadlines & follow-ups", blurb: "Never miss a grant deadline or forget to follow up.", defaultOn: false },
+    ],
+  },
 ];
 
 export const MODULE_MAP = Object.fromEntries(MODULES.map((m) => [m.id, m])) as Record<ModuleId, ModuleDef>;
@@ -140,6 +159,9 @@ export const LINKS: ModuleLink[] = [
   { from: "fundraising", to: "finance", port: "donations", label: "Donations auto-flow into the ledger as income" },
   { from: "events", to: "finance", port: "events", label: "Track spending per event vs. budget" },
   { from: "hr", to: "publicity", port: "people", label: "Credit members for content they created" },
+  { from: "hr", to: "sponsors", port: "people", label: "Assign an owner to every sponsor conversation" },
+  { from: "sponsors", to: "fundraising", port: "sponsors", label: "Committed sponsors show up in your fundraising totals" },
+  { from: "sponsors", to: "finance", port: "sponsors", label: "Committed sponsorships land in the ledger as income" },
 ];
 
 export function activeLinks(stack: StackItem[]) {

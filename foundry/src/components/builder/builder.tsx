@@ -172,7 +172,7 @@ export function Builder() {
             <Card className="space-y-3">
               <div className="font-bold">{projectId ? "Project details" : "Name your project"}</div>
               <div className="flex gap-2">
-                <Input value={meta.emoji} onChange={(e) => setMeta({ ...meta, emoji: e.target.value })} className="w-14 text-2xl text-center px-1" />
+                <Input value={meta.emoji} onChange={(e) => setMeta({ ...meta, emoji: e.target.value })} className="!w-14 shrink-0 text-2xl text-center px-1" />
                 <Input value={meta.name} onChange={(e) => setMeta({ ...meta, name: e.target.value })} placeholder="Project name" className="font-bold" />
               </div>
               <Input value={meta.tagline} onChange={(e) => setMeta({ ...meta, tagline: e.target.value })} placeholder="One-line tagline" />

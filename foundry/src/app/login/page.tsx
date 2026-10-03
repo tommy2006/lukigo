@@ -12,6 +12,8 @@ export default function LoginPage() {
 function Login() {
   const router = useRouter();
   const params = useSearchParams();
+  const rawNext = params.get("next") || "";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\") ? rawNext : null; // same-site paths only
   const [mode, setMode] = useState<"signin" | "signup">(params.get("mode") === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,11 +32,11 @@ function Login() {
       if (error) { setErr(error.message); setLoading(false); return; }
       if (!data.session) { setErr("Check your email to confirm your account (or disable email confirmation in Supabase)."); setLoading(false); return; }
       await sb.from("profiles").upsert({ id: data.user!.id, email, full_name: name, school, grade });
-      router.push("/home?welcome=1");
+      router.push(next || "/home?welcome=1");
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) { setErr(error.message); setLoading(false); return; }
-      router.push("/home");
+      router.push(next || "/home");
     }
   }
 

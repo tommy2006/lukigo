@@ -9,6 +9,7 @@ import { MODULE_MAP } from "@/lib/modules";
 import { ROLE_MAP, roleLabel, canEditModules } from "@/lib/roles";
 import { Badge, Empty, Spinner, cx } from "@/components/ui";
 import { Logo } from "@/components/logo";
+import { PortalButton } from "@/components/portal/portal-button";
 
 export default function ProjectLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -39,7 +40,10 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex">
       <aside className="w-64 shrink-0 border-r border-line bg-black/20 backdrop-blur-xl p-4 flex flex-col gap-1 sticky top-0 h-screen max-md:hidden">
-        <Link href="/home" className="flex items-center gap-2 mb-5 px-2 text-ink-3 hover:text-ink text-sm"><ChevronLeft className="size-4" /><Logo small /></Link>
+        <div className="flex items-center justify-between mb-5 px-2">
+          <Link href="/home" className="flex items-center gap-2 text-ink-3 hover:text-ink text-sm"><ChevronLeft className="size-4" /><Logo small /></Link>
+          <PortalButton className="!h-7 !px-2.5 !text-[12px]" />
+        </div>
         <div className="px-2 mb-4">
           <div className="text-3xl mb-1">{project.emoji}</div>
           <div className="font-extrabold text-lg leading-tight">{project.name}</div>
@@ -71,6 +75,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         {/* mobile top nav */}
         <div className="md:hidden flex gap-2 overflow-x-auto p-3 border-b border-line">
           <Link href="/home" className="text-ink-3 px-2 py-1 text-sm">←</Link>
+          <PortalButton className="shrink-0" />
           {nav.map((n) => <Link key={n.href} href={n.href} className="shrink-0 rounded-lg bg-panel px-3 py-1.5 text-sm">{n.label}</Link>)}
         </div>
         <div className="max-w-6xl mx-auto px-5 md:px-10 py-8 md:py-10">{children}</div>

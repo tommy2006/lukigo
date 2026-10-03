@@ -1,4 +1,4 @@
-# Foundry — setup
+# Lukigo — setup
 
 ## 1. Supabase (≈5 min)
 1. supabase.com → **New project** (any region near you; save the DB password).
