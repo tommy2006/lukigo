@@ -15,7 +15,9 @@ export const currentModel = () => activeModel;
 
 export const aiConfigured = () => !!BASE;
 
-export async function chat(system: string, user: string, opts: { json?: boolean; maxTokens?: number } = {}): Promise<string> {
+export type Msg = { role: "user" | "assistant"; content: string };
+
+export async function chat(system: string, user: string | Msg[], opts: { json?: boolean; maxTokens?: number } = {}): Promise<string> {
   if (!BASE) throw new Error("AI_BASE_URL not set");
   const tried = new Set<string>();
   let rateRetries = 0;
@@ -52,7 +54,7 @@ export async function discoverModels(): Promise<string[]> {
   return discovered;
 }
 
-export async function callModel(model: string, system: string, user: string, opts: { json?: boolean; maxTokens?: number }): Promise<string> {
+export async function callModel(model: string, system: string, user: string | Msg[], opts: { json?: boolean; maxTokens?: number }): Promise<string> {
   const res = await fetch(`${BASE!.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${KEY}` },
@@ -60,10 +62,9 @@ export async function callModel(model: string, system: string, user: string, opt
       model,
       temperature: 0.4,
       max_tokens: opts.maxTokens ?? 1200,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
+      messages: [{ role: "system", content: system }, ...(typeof user === "string" ? [{ role: "user", content: user }] : user)],
+      // reasoning models (gpt-oss): keep thinking short so answers are fast and fit the token budget
+      ...(/gpt-oss/i.test(model) ? { reasoning_effort: "low" } : {}),
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
     }),
     signal: AbortSignal.timeout(45_000),

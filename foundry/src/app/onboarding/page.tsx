@@ -30,6 +30,7 @@ function Onboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [desc, setDesc] = useState("");
+  const [location, setLocation] = useState("");
   const [intro, setIntro] = useState("");
   const [questions, setQuestions] = useState<OnboardQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -39,7 +40,7 @@ function Onboarding() {
   async function getQuestions() {
     setLoading(true);
     try {
-      const r = await askAI<{ intro: string; questions: OnboardQuestion[] }>("onboard_questions", { description: desc });
+      const r = await askAI<{ intro: string; questions: OnboardQuestion[] }>("onboard_questions", { description: desc }, { location });
       setIntro(r.intro); setQuestions(r.questions || []); setStep(1);
     } finally { setLoading(false); }
   }
@@ -50,7 +51,7 @@ function Onboarding() {
       const r = await askAI<Rec>("recommend_modules", {
         description: desc,
         answers: questions.map((q) => ({ question: q.question, answer: (answers[q.id] || []).join(", ") || "skipped" })),
-      });
+      }, { location });
       // sanitize: only known modules/submodules
       r.stack = (r.stack || []).filter((s) => MODULE_MAP[s.id]).map((s) => ({
         ...s, submodules: (s.submodules || []).filter((x) => MODULE_MAP[s.id].submodules.some((m) => m.id === x)),
@@ -70,10 +71,10 @@ function Onboarding() {
 
   function openBuilder(r: Rec | null) {
     const draft: Draft = r
-      ? { name: r.name, tagline: r.tagline, emoji: r.emoji, cause: r.cause, description: desc,
+      ? { name: r.name, tagline: r.tagline, emoji: r.emoji, cause: r.cause, description: desc, location,
           stack: r.stack.map(({ id, submodules }) => ({ id, submodules })),
           reasons: Object.fromEntries(r.stack.map((s) => [s.id, s.reason || ""])), first_steps: r.first_steps }
-      : { name: "", tagline: "", emoji: "🌱", cause: "community", description: desc, stack: [] };
+      : { name: "", tagline: "", emoji: "🌱", cause: "community", description: desc, location, stack: [] };
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     router.push("/build");
   }
@@ -101,6 +102,12 @@ function Onboarding() {
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">What do you want to <span className="serif italic font-normal grad-text">change?</span></h1>
               <p className="text-ink-2 mt-3">Describe your project in your own words — who you want to help, how, and with whom. Messy is fine. Lukigo&apos;s AI will turn it into a ready-to-run toolkit.</p>
               <Textarea value={desc} onChange={(e) => setDesc(e.target.value)} className="mt-6 min-h-40 text-base" placeholder="e.g. I want to start a club that…" autoFocus />
+              <div className="mt-4 max-w-md">
+                <Field label="Where is your project based?" hint="city, country">
+                  <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Da Nang, Vietnam · Helsinki, Finland · Singapore" />
+                </Field>
+                <div className="text-[11px] text-ink-3 mt-1">Lukigo tailors sponsors, suppliers, platforms and rules to your location.</div>
+              </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="text-xs text-ink-3 py-1.5">Need inspiration?</span>
                 {EXAMPLES.map((e) => (

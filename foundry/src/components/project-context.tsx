@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import { supabase } from "@/lib/supabase";
 import type { Member, Project, StackItem } from "@/lib/types";
 import { useAuth } from "./auth";
+import { setAIContext } from "@/lib/ai/client";
 
 export interface ProjectCtx {
   project: Project;
@@ -42,6 +43,10 @@ export function ProjectProvider({ id, children, fallback, notFound }: { id: stri
   }, [id, reloadMembers]);
 
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    setAIContext(project ? { project: project.name, location: project.location, cause: project.cause } : null);
+    return () => setAIContext(null);
+  }, [project]);
 
   if (state === "loading") return <>{fallback}</>;
   if (state === "missing" || !project) return <>{notFound}</>;

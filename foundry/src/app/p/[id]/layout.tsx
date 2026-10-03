@@ -11,6 +11,7 @@ import { Badge, Empty, Spinner, cx } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import { PortalButton } from "@/components/portal/portal-button";
 import { ProjectSwitcher } from "@/components/project-switcher";
+import { Assistant } from "@/components/assistant";
 
 export default function ProjectLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -81,6 +82,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           {nav.map((n) => <Link key={n.href} href={n.href} className="shrink-0 rounded-lg bg-panel px-3 py-1.5 text-sm">{n.label}</Link>)}
         </div>
         <div className="max-w-6xl mx-auto px-5 md:px-10 py-8 md:py-10">{children}</div>
+        <Assistant />
       </main>
     </div>
   );
