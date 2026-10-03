@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chat } from "@/lib/ai/llm";
+import { chat, currentModel } from "@/lib/ai/llm";
 
 // Diagnostic: is the LLM configured and reachable? Never returns the key.
 export async function GET() {
@@ -16,7 +16,7 @@ export async function GET() {
   if (!base) return NextResponse.json({ ...info, ok: false, error: "AI_BASE_URL is not set in this deployment" });
   try {
     const out = await chat("Reply with the single word: pong", "ping", { maxTokens: 5 });
-    return NextResponse.json({ ...info, ok: true, reply: out.slice(0, 40) });
+    return NextResponse.json({ ...info, ok: true, model_in_use: currentModel(), reply: out.slice(0, 40) });
   } catch (e) {
     return NextResponse.json({ ...info, ok: false, error: String((e as Error).message).slice(0, 300) });
   }

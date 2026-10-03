@@ -7,15 +7,35 @@ const RAW_MODEL = (process.env.AI_MODEL || "mistralai/Mistral-Large-3-675B-Instr
 // Mistral's hosted API uses hyphenated ids (mistral-large-latest); tolerate "mistral_large_latest".
 const MODEL = BASE?.includes("api.mistral.ai") ? RAW_MODEL.replace(/_/g, "-") : RAW_MODEL;
 
+// If the plan doesn't include MODEL (Mistral 403 tier_not_allowed), fall back to these, in order.
+const FALLBACK_MODELS = (process.env.AI_FALLBACK_MODELS || "mistral-medium-latest,mistral-small-latest").split(",").map((m) => m.trim()).filter(Boolean);
+let activeModel = MODEL;
+export const currentModel = () => activeModel;
+
 export const aiConfigured = () => !!BASE;
 
 export async function chat(system: string, user: string, opts: { json?: boolean; maxTokens?: number } = {}): Promise<string> {
   if (!BASE) throw new Error("AI_BASE_URL not set");
-  const res = await fetch(`${BASE.replace(/\/$/, "")}/chat/completions`, {
+  const tried = new Set<string>();
+  for (;;) {
+    tried.add(activeModel);
+    try {
+      return await callModel(activeModel, system, user, opts);
+    } catch (e) {
+      const msg = String((e as Error).message);
+      const next = FALLBACK_MODELS.find((m) => !tried.has(m));
+      if (/tier_not_allowed|invalid_model|not available/i.test(msg) && next) { activeModel = next; continue; }
+      throw e;
+    }
+  }
+}
+
+async function callModel(model: string, system: string, user: string, opts: { json?: boolean; maxTokens?: number }): Promise<string> {
+  const res = await fetch(`${BASE!.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${KEY}` },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       temperature: 0.4,
       max_tokens: opts.maxTokens ?? 1200,
       messages: [
