@@ -1,5 +1,4 @@
-// Server-only. OpenAI-compatible chat client — points at Mistral Large 3 served by vLLM on Verda
-// (or any OpenAI-compatible endpoint, e.g. https://api.mistral.ai/v1).
+// Server-only. OpenAI-compatible chat client: Mistral API, Groq, or a self-hosted vLLM (e.g. Mistral Large 3 on Verda).
 
 const BASE = process.env.AI_BASE_URL;        // e.g. http://<verda-ip>:8000/v1
 const KEY = process.env.AI_API_KEY || "none";
@@ -8,7 +7,9 @@ const RAW_MODEL = (process.env.AI_MODEL || "mistralai/Mistral-Large-3-675B-Instr
 const MODEL = BASE?.includes("api.mistral.ai") ? RAW_MODEL.replace(/_/g, "-") : RAW_MODEL;
 
 // If the plan doesn't include MODEL (Mistral 403 tier_not_allowed), fall back to these, in order.
-const FALLBACK_MODELS = (process.env.AI_FALLBACK_MODELS || "mistral-medium-latest,mistral-small-latest").split(",").map((m) => m.trim()).filter(Boolean);
+const DEFAULT_FALLBACKS = BASE?.includes("api.mistral.ai") ? "mistral-medium-latest,mistral-small-latest"
+  : BASE?.includes("api.groq.com") ? "llama-3.3-70b-versatile,llama-3.1-8b-instant" : "";
+const FALLBACK_MODELS = (process.env.AI_FALLBACK_MODELS || DEFAULT_FALLBACKS).split(",").map((m) => m.trim()).filter(Boolean);
 let activeModel = MODEL;
 export const currentModel = () => activeModel;
 
@@ -31,6 +32,8 @@ export async function chat(system: string, user: string, opts: { json?: boolean;
     }
   }
 }
+
+export const modelChain = () => [MODEL, ...FALLBACK_MODELS.filter((m) => m !== MODEL)];
 
 export async function callModel(model: string, system: string, user: string, opts: { json?: boolean; maxTokens?: number }): Promise<string> {
   const res = await fetch(`${BASE!.replace(/\/$/, "")}/chat/completions`, {
