@@ -45,19 +45,21 @@ function EventsBoard() {
 
   return (
     <div>
-      <PageHeader emoji="🎪" title="Event" accent="Manager"
-        subtitle="Every event your team runs — from first idea to done. Click an event to break it into tasks and track progress."
-        actions={<>
-          {showCal && (
-            <div className="flex rounded-xl border border-line p-0.5">
-              <button onClick={() => setView("board")} className={cx("px-3 h-9 rounded-lg text-sm flex items-center gap-1.5", view === "board" ? "bg-panel-2 text-ink" : "text-ink-3")}><LayoutGrid className="size-4" />Board</button>
-              <button onClick={() => setView("calendar")} className={cx("px-3 h-9 rounded-lg text-sm flex items-center gap-1.5", view === "calendar" ? "bg-panel-2 text-ink" : "text-ink-3")}><CalendarDays className="size-4" />Calendar</button>
-            </div>
-          )}
-          {canEdit && <Button onClick={() => setOpen(true)}><Plus className="size-4" />New event</Button>}
-        </>}
-      />
-      {!canEdit && <div className="mb-4"><NoPerm>You can view events but your role can&apos;t create them.</NoPerm></div>}
+      <div className="relative z-10">
+        <PageHeader emoji="🎪" title="Event" accent="Manager"
+          subtitle="Every event your team runs — from first idea to done. Click an event to break it into tasks and track progress."
+          actions={<>
+            {showCal && (
+              <div className="flex rounded-xl border border-line p-0.5">
+                <button onClick={() => setView("board")} className={cx("px-3 h-9 rounded-lg text-sm flex items-center gap-1.5", view === "board" ? "bg-panel-2 text-ink" : "text-ink-3")}><LayoutGrid className="size-4" />Board</button>
+                <button onClick={() => setView("calendar")} className={cx("px-3 h-9 rounded-lg text-sm flex items-center gap-1.5", view === "calendar" ? "bg-panel-2 text-ink" : "text-ink-3")}><CalendarDays className="size-4" />Calendar</button>
+              </div>
+            )}
+            {canEdit && <Button onClick={() => setOpen(true)}><Plus className="size-4" />New event</Button>}
+          </>}
+        />
+        {!canEdit && <div className="mb-4"><NoPerm>You can view events but your role can&apos;t create them.</NoPerm></div>}
+      </div>
 
       {loadingE ? <div className="grid place-items-center py-20"><Spinner /></div> : events.length === 0 ? (
         <div className="space-y-4">
@@ -81,7 +83,7 @@ function EventsBoard() {
             })}
           </div>
           {view === "calendar" && showCal ? <MonthCalendar events={shown} projectId={project.id} /> : (
-            <div className="space-y-8">
+            <div className="relative z-0 isolate space-y-8">
               {upcoming.length > 0 && (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {upcoming.map((e, i) => <EventCard key={e.id} e={e} i={i} prog={byEvent[e.id]} href={`/p/${project.id}/events/${e.id}`} lead={members.find((m) => m.id === e.lead_member_id)?.full_name} />)}
@@ -113,7 +115,7 @@ function EventCard({ e, i, prog, href, lead }: { e: EventRow; i: number; prog?: 
   const p = pct(prog?.done || 0, prog?.total || 0);
   const days = daysUntil(e.starts_at);
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+    <motion.div className="relative isolate" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
       <Link href={href}>
         <Card className="h-full hover:border-line-2 hover:-translate-y-0.5 transition cursor-pointer">
           <div className="flex items-start justify-between gap-2">
