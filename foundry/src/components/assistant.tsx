@@ -104,7 +104,7 @@ export function Assistant() {
               {msgs.map((m, i) => (
                 <div key={i} className={cx("flex", m.role === "user" ? "justify-end" : "justify-start")}>
                   <div className={cx("max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm whitespace-pre-wrap leading-relaxed",
-                    m.role === "user" ? "bg-accent/20 rounded-br-sm text-ink" : "bg-panel-2 rounded-bl-sm text-ink")}>{m.content}</div>
+                    m.role === "user" ? "bg-accent/20 rounded-br-sm text-ink" : "bg-panel-2 rounded-bl-sm text-ink")}>{m.role === "assistant" ? <Rich text={m.content} /> : m.content}</div>
                 </div>
               ))}
               {busy && <div className="flex gap-1 px-2">{[0, 1, 2].map((i) => <span key={i} className="size-2 rounded-full bg-violet/70 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}</div>}
@@ -120,4 +120,11 @@ export function Assistant() {
       </AnimatePresence>
     </>
   );
+}
+
+/** Minimal formatter: **bold**, strips heading hashes. */
+function Rich({ text }: { text: string }) {
+  const clean = text.replace(/^#{1,6}\s*/gm, "");
+  return <>{clean.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong> : <span key={i}>{part}</span>)}</>;
 }
