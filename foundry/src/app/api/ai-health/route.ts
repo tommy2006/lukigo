@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callModel, currentModel, modelChain } from "@/lib/ai/llm";
+import { callModel, chat, currentModel, discoverModels, modelChain } from "@/lib/ai/llm";
 
 // Diagnostic: is the LLM configured and reachable? Never returns the key.
 export async function GET() {
@@ -20,5 +20,9 @@ export async function GET() {
     catch (e) { probes[m] = String((e as Error).message).replace(/\{[\s\S]*"message":"([^"]*)"[\s\S]*/, "$1").slice(0, 120); }
     await new Promise((r) => setTimeout(r, 1500));
   }
-  return NextResponse.json({ ...info, model_in_use: currentModel(), probes });
+  const available = await discoverModels();
+  let chain_test = "";
+  try { chain_test = "OK: " + (await chat("Reply with one word: pong", "ping", { maxTokens: 5 })).slice(0, 20); }
+  catch (e) { chain_test = String((e as Error).message).slice(0, 160); }
+  return NextResponse.json({ ...info, model_in_use: currentModel(), chain_test, probes, available: available.slice(0, 15) });
 }
