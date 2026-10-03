@@ -80,6 +80,13 @@ export function canAssignTo(me: Pick<Member, "id" | "role"> | null | undefined, 
 export const canReassign = (me: Pick<Member, "id" | "role"> | null | undefined, current: Pick<Member, "id" | "role"> | null | undefined) =>
   !current || canAssignTo(me, current);
 
+/** Approves member-requested events (mirrors can_approve_events() in patch-005). */
+export const canApproveEvents = (me?: Pick<Member, "role" | "department"> | null) =>
+  !!me && (me.role === "president" || me.role === "vice_president" || (me.role === "head" && me.department === "Events"));
+
+/** Only the president renames or deletes the project. */
+export const isPresident = (me?: Pick<Member, "role"> | null) => me?.role === "president";
+
 /** Can `me` change the builder (add/remove modules)? */
 export const canEditModules = (me?: Pick<Member, "role"> | null) => me?.role === "president" || me?.role === "vice_president";
 

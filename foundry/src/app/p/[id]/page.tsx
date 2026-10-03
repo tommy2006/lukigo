@@ -6,11 +6,13 @@ import { motion } from "framer-motion";
 import { Check, Copy, ArrowRight, Wand2 } from "lucide-react";
 import { seedDemo } from "@/lib/demo-seed";
 import { ListingCard } from "@/components/portal/listing-card";
+import { ProjectSettings } from "@/components/project-settings";
+import { EventRequests } from "@/components/modules/event-requests";
 import { JoinRequests } from "@/components/portal/join-requests";
 import { useProject } from "@/components/project-context";
 import { supabase } from "@/lib/supabase";
 import { MODULE_MAP, hasModule, hasSub } from "@/lib/modules";
-import { ROLE_MAP, roleLabel, can, visibleModules } from "@/lib/roles";
+import { ROLE_MAP, roleLabel, can, visibleModules, canApproveEvents, isPresident } from "@/lib/roles";
 import type { Donation, EventRow, Fundraiser, SocialPost, SponsorLead, Task, Transaction } from "@/lib/types";
 import { Avatar, Badge, Button, Card, PageHeader, Progress, Tip, cx, fmtDate, fmtMoney } from "@/components/ui";
 
@@ -63,7 +65,7 @@ function Overview() {
   const raised = d?.donations.reduce((n, x) => n + Number(x.amount), 0) || 0;
   const goal = d?.fundraisers.reduce((n, x) => n + Number(x.goal), 0) || 0;
   const doneTasks = d?.tasks.filter((t) => t.status === "done").length || 0;
-  const upcoming = d?.events.filter((e) => e.starts_at && e.starts_at >= new Date().toISOString() && e.status !== "cancelled") || [];
+  const upcoming = d?.events.filter((e) => (e.approval ?? "approved") === "approved" && e.starts_at && e.starts_at >= new Date().toISOString() && e.status !== "cancelled") || [];
   const balance = d?.tx.reduce((n, t) => n + (t.kind === "income" ? 1 : -1) * Number(t.amount), 0) || 0;
 
   const checklist = [
@@ -140,6 +142,7 @@ function Overview() {
       {me && (me.role === "president" || me.role === "vice_president" || (me.role === "head" && me.department === "HR")) && (
         <JoinRequests projectId={project.id} onDecided={reloadMembers} />
       )}
+      {d && hasModule(stack, "events") && <EventRequests events={d.events} members={members} me={me} canApprove={canApproveEvents(me)} projectId={project.id} onChanged={() => setTick((t) => t + 1)} compact />}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {tiles.map(({ s, m, stat, sub }, i) => (
@@ -161,6 +164,7 @@ function Overview() {
       </div>
 
       {me && (me.role === "president" || me.role === "vice_president") && <ListingCard project={project} onSaved={reload} />}
+      {isPresident(me) && <ProjectSettings project={project} onSaved={reload} />}
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>

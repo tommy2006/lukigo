@@ -9,7 +9,8 @@ import { useProject } from "@/components/project-context";
 import { supabase } from "@/lib/supabase";
 import { askAI } from "@/lib/ai/client";
 import { activeLinks, hasModule, hasSub } from "@/lib/modules";
-import { can, canAssignTo, canReassign } from "@/lib/roles";
+import { can, canAssignTo, canReassign, canApproveEvents } from "@/lib/roles";
+import { EventRequests } from "@/components/modules/event-requests";
 import type { Donation, EventRow, Fundraiser, Member, Task, Transaction } from "@/lib/types";
 import type { PlannedTask } from "@/lib/ai/tasks/modules";
 import { AIBox, Avatar, Badge, Button, Card, Empty, Field, Input, Modal, PageHeader, Progress, Select, Spinner, Textarea, Tip, cx, fmtDate, fmtMoney, todayISO } from "@/components/ui";
@@ -95,6 +96,9 @@ function EventDetail({ eventId }: { eventId: string }) {
   return (
     <div>
       <Link href={`/p/${project.id}/events`} className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink mb-4"><ArrowLeft className="size-4" />All events</Link>
+      {event.approval && event.approval !== "approved" && (
+        <div className="mb-5"><EventRequests events={[event]} members={members} me={me} canApprove={canApproveEvents(me)} projectId={project.id} onChanged={load} /></div>
+      )}
       <PageHeader emoji={EVENT_TYPE_EMOJI[event.type] || "✨"} title={event.name}
         subtitle={desc || undefined}
         actions={<>

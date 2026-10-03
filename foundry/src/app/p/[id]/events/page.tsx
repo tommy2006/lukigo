@@ -7,7 +7,8 @@ import { CalendarDays, ChevronLeft, ChevronRight, LayoutGrid, MapPin, Plus } fro
 import { ModuleGate } from "@/components/module-gate";
 import { useProject } from "@/components/project-context";
 import { hasModule, hasSub } from "@/lib/modules";
-import { can } from "@/lib/roles";
+import { can, canApproveEvents } from "@/lib/roles";
+import { EventRequests } from "@/components/modules/event-requests";
 import type { EventRow, Task } from "@/lib/types";
 import { Avatar, Badge, Button, Card, Empty, Modal, PageHeader, Progress, Spinner, Tip, cx, fmtDate } from "@/components/ui";
 import { EventForm } from "@/components/modules/event-form";
@@ -20,13 +21,16 @@ export default function EventsPage() {
 function EventsBoard() {
   const { project, stack, me, members } = useProject();
   const router = useRouter();
-  const [events, , loadingE] = useRows<EventRow>("events", project.id, "starts_at", true);
+  const [allEvents, reloadEvents, loadingE] = useRows<EventRow>("events", project.id, "starts_at", true);
+  const events = allEvents.filter((e) => (e.approval ?? "approved") === "approved");
+  const [sent, setSent] = useState("");
   const [tasks] = useRows<Task>("tasks", project.id);
   const [open, setOpen] = useState(false);
   const showCal = hasSub(stack, "events", "calendar");
   const [view, setView] = useState<"board" | "calendar">("board");
   const [filter, setFilter] = useState<string>("all");
   const canEdit = can(me, "events", "edit");
+  const approver = canApproveEvents(me);
 
   const byEvent = useMemo(() => {
     const m: Record<string, { total: number; done: number }> = {};
@@ -54,10 +58,12 @@ function EventsBoard() {
               <button onClick={() => setView("calendar")} className={cx("px-3 h-9 rounded-lg text-sm flex items-center gap-1.5", view === "calendar" ? "bg-panel-2 text-ink" : "text-ink-3")}><CalendarDays className="size-4" />Calendar</button>
             </div>
           )}
-          {canEdit && <Button onClick={() => setOpen(true)}><Plus className="size-4" />New event</Button>}
+          {canEdit && <Button onClick={() => setOpen(true)}><Plus className="size-4" />{approver ? "New event" : "Request an event"}</Button>}
         </>}
       />
       {!canEdit && <div className="mb-4"><NoPerm>You can view events but your role can&apos;t create them.</NoPerm></div>}
+      {sent && <div className="mb-4 rounded-xl border border-good/30 bg-good/[0.06] px-4 py-2.5 text-sm flex justify-between">{sent}<button onClick={() => setSent("")} className="text-ink-3">✕</button></div>}
+      <div className="mb-5"><EventRequests events={allEvents} members={members} me={me} canApprove={approver} projectId={project.id} onChanged={reloadEvents} /></div>
 
       {loadingE ? <div className="grid place-items-center py-20"><Spinner /></div> : events.length === 0 ? (
         <div className="space-y-4">
@@ -100,9 +106,14 @@ function EventsBoard() {
         </>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New event">
+      <Modal open={open} onClose={() => setOpen(false)} title={approver ? "New event" : "Request an event"}>
+        {!approver && <div className="mb-4"><Tip title="How requests work">Your event goes to the president{" "}(and Head of Events, if there is one) for approval. Once approved, everyone in the project sees it.</Tip></div>}
         <EventForm projectId={project.id} members={members} showBudget={hasModule(stack, "finance")} onCancel={() => setOpen(false)}
-          onSaved={(e) => { setOpen(false); router.push(`/p/${project.id}/events/${e.id}`); }} />
+          onSaved={(e) => {
+            setOpen(false);
+            if (e.approval === "pending") { setSent(`📨 "${e.name}" was sent for approval. You'll see it here until a leader reviews it.`); reloadEvents(); }
+            else router.push(`/p/${project.id}/events/${e.id}`);
+          }} />
       </Modal>
     </div>
   );

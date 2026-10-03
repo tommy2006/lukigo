@@ -43,7 +43,7 @@ function Home() {
       sb.from("events").select("*").in("project_id", ms.map((m) => m.project_id)).gte("starts_at", new Date().toISOString()).order("starts_at").limit(30),
     ]);
     setTasks((t.data as Task[]) || []);
-    setEvents((e.data as EventRow[]) || []);
+    setEvents(((e.data as EventRow[]) || []).filter((x) => (x.approval ?? "approved") === "approved"));
   }, [user.id]);
 
   useEffect(() => { load(); }, [load]);
@@ -121,12 +121,9 @@ function Home() {
                 {summary?.headline}
               </AIBox>
 
-              <div className="flex items-end justify-between -mb-2">
-                <div>
-                  <div className="font-extrabold text-lg">Your projects <span className="font-mono text-ink-3 text-sm">{mems.length}</span></div>
-                  <div className="text-xs text-ink-3">Click a card to open its workspace. Inside, use the project name at the top of the sidebar to switch.</div>
-                </div>
-              </div>
+              <div className="pt-2">
+                <div className="font-extrabold text-lg">Your projects <span className="font-mono text-ink-3 text-sm">{mems.length}</span></div>
+                <div className="text-xs text-ink-3 mt-0.5 mb-4">Click a card to open its workspace. Inside, use the project name at the top of the sidebar to switch.</div>
               <div className="grid md:grid-cols-2 gap-4">
                 {mems.map((m, i) => {
                   const p = m.projects;
@@ -166,6 +163,7 @@ function Home() {
                     </motion.div>
                   );
                 })}
+              </div>
               </div>
             </div>
 

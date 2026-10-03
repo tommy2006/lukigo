@@ -132,6 +132,9 @@ export interface EventRow {
   budget: number;
   lead_member_id: string | null;
   created_at: string;
+  approval?: "pending" | "approved" | "declined";
+  requested_by?: string | null;
+  decision_note?: string | null;
 }
 
 export interface Task {
