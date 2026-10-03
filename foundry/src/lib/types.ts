@@ -16,7 +16,7 @@ export interface StackItem {
   submodules: string[];
 }
 
-export type ModuleId = "hr" | "events" | "fundraising" | "publicity" | "finance" | "sponsors";
+export type ModuleId = "hr" | "events" | "fundraising" | "publicity" | "finance" | "sponsors" | "shifts" | "partners";
 
 export interface Project {
   id: string;
@@ -117,6 +117,7 @@ export interface Member {
   notes: string | null;
   joined_at: string;
   portal_role?: PortalRole | null;
+  availability?: Record<string, string[]>;
 }
 
 export interface EventRow {
@@ -227,4 +228,26 @@ export interface MerchSale {
   unit_price: number;
   buyer: string | null;
   sold_on: string;
+}
+
+export interface Shift {
+  id: string; project_id: string; event_id: string | null; title: string; description: string | null;
+  starts_at: string; ends_at: string; location: string | null; slots: number; lead_member_id: string | null; created_at: string;
+}
+export interface ShiftSignup {
+  id: string; shift_id: string; project_id: string; member_id: string;
+  status: "signed_up" | "checked_in" | "completed" | "no_show";
+  checked_in_at: string | null; checked_out_at: string | null; hours: number | null; created_at: string;
+}
+export interface Partner {
+  id: string; project_id: string; name: string; kind: string; status: "prospect" | "active" | "paused" | "ended";
+  contact_name: string | null; contact_email: string | null; contact_phone: string | null; website: string | null;
+  gives: string | null; gets: string | null; agreement_start: string | null; agreement_end: string | null;
+  owner_member_id: string | null; notes: string | null; log: { t: number; by: string | null; text: string; event?: string | null }[]; created_at: string;
+}
+export interface Beneficiary {
+  id: string; project_id: string; name: string; kind: string; people_count: number; location: string | null;
+  contact_name: string | null; contact_info: string | null; partner_id: string | null; needs: string | null; consent: boolean;
+  status: "active" | "paused" | "completed"; last_contact: string | null; next_contact: string | null; notes: string | null;
+  feedback: { t: number; by: string | null; text: string; rating?: number }[]; created_at: string;
 }

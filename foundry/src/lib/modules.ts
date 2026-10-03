@@ -140,6 +140,44 @@ export const MODULES: ModuleDef[] = [
       { id: "deadlines", name: "Deadlines & follow-ups", blurb: "Never miss a grant deadline or forget to follow up.", defaultOn: false },
     ],
   },
+  {
+    id: "shifts",
+    name: "Volunteer Shifts",
+    short: "Shifts",
+    tagline: "Sign-up sheets, check-in, and service hours that count for school.",
+    emoji: "🗓️",
+    color: "#d4f59a",
+    ink: "#3d5a0a",
+    core: false,
+    provides: ["hours"],
+    consumes: ["people", "events"],
+    submodules: [
+      { id: "signups", name: "Shift sign-up sheets", blurb: "Post shifts with times and slots; members claim them in one tap.", defaultOn: true },
+      { id: "checkin", name: "Check-in & hours", blurb: "Check people in on the day; confirmed hours land on their profile.", defaultOn: true },
+      { id: "availability", name: "Availability", blurb: "Everyone marks when they're usually free each week.", defaultOn: true },
+      { id: "ai_staffing", name: "AI staffing helper", blurb: "AI suggests who to ask for each unfilled shift.", defaultOn: true },
+      { id: "certificates", name: "Hour certificates", blurb: "Printable service-hour certificates for school, NHS or awards.", defaultOn: false },
+    ],
+  },
+  {
+    id: "partners",
+    name: "Partners & Beneficiaries",
+    short: "Partners",
+    tagline: "The schools, NGOs and businesses you work with — and the people you serve.",
+    emoji: "🏫",
+    color: "#f0c4ff",
+    ink: "#5c1a6e",
+    core: false,
+    provides: ["partners"],
+    consumes: ["people", "events"],
+    submodules: [
+      { id: "directory", name: "Partner directory", blurb: "Every partner organization with contacts and a point person.", defaultOn: true },
+      { id: "agreements", name: "Agreements", blurb: "What each side gives and gets, with start and end dates.", defaultOn: true },
+      { id: "activity", name: "Activity log", blurb: "Meetings, shared events and contributions over time.", defaultOn: true },
+      { id: "ai_drafts", name: "AI proposals & thank-yous", blurb: "Draft partnership proposals, check-ins and thank-you notes.", defaultOn: true },
+      { id: "beneficiaries", name: "Beneficiary management", blurb: "Track the specific people or groups you serve, their needs and feedback. Skip it for pure awareness / social-media campaigns.", defaultOn: false },
+    ],
+  },
 ];
 
 export const MODULE_MAP = Object.fromEntries(MODULES.map((m) => [m.id, m])) as Record<ModuleId, ModuleDef>;
@@ -162,6 +200,10 @@ export const LINKS: ModuleLink[] = [
   { from: "hr", to: "sponsors", port: "people", label: "Assign an owner to every sponsor conversation" },
   { from: "sponsors", to: "fundraising", port: "sponsors", label: "Committed sponsors show up in your fundraising totals" },
   { from: "sponsors", to: "finance", port: "sponsors", label: "Committed sponsorships land in the ledger as income" },
+  { from: "events", to: "shifts", port: "events", label: "Staff each event with volunteer shifts" },
+  { from: "shifts", to: "hr", port: "hours", label: "Confirmed shifts add service hours to each member" },
+  { from: "hr", to: "partners", port: "people", label: "Give every partner a point person" },
+  { from: "events", to: "partners", port: "events", label: "Log which partners helped at each event" },
 ];
 
 export function activeLinks(stack: StackItem[]) {

@@ -19,6 +19,8 @@ export const DEPARTMENT_FOR_MODULE: Record<ModuleId, string> = {
   publicity: "Publicity",
   finance: "Finance",
   sponsors: "Fundraising",
+  shifts: "Events",
+  partners: "Outreach",
 };
 
 export const PORTAL_ROLES: { k: import("./types").PortalRole; label: string; blurb: string; team: boolean }[] = [
@@ -44,11 +46,11 @@ export function can(me: Pick<Member, "role" | "department"> | null | undefined, 
   if (r === "vice_president") return true;
   if (action === "view") return true;
   if (r === "head" && me.department === DEPARTMENT_FOR_MODULE[module]) return true;
-  if (r === "secretary") return ["events", "publicity"].includes(module) || (module === "hr" && action === "edit");
+  if (r === "secretary") return ["events", "publicity", "shifts", "partners"].includes(module) || (module === "hr" && action === "edit");
   if (r === "treasurer") return ["fundraising", "finance", "sponsors"].includes(module);
   if (r === "head") return action === "edit" && module === "events"; // heads can assign event tasks
   // members: can add day-to-day records but not manage
-  if (r === "member") return action === "edit" && ["events", "fundraising", "publicity"].includes(module);
+  if (r === "member") return action === "edit" && ["events", "fundraising", "publicity", "shifts"].includes(module);
   return false;
 }
 

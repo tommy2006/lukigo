@@ -161,11 +161,13 @@ function MemberForm({ projectId, m, selfOnly, applicant, onDone }: { projectId: 
     } : {
       ...contact, full_name: v.full_name.trim(), role: v.role, department: v.department || null, title: v.title || null, status: v.status, hours: Number(v.hours) || 0, notes: v.notes || null,
     };
-    const { error } = m
-      ? await supabase().from("project_members").update(row).eq("id", m.id)
-      : await supabase().from("project_members").insert({ project_id: projectId, ...row });
+    const { data, error } = m
+      ? await supabase().from("project_members").update(row).eq("id", m.id).select("id")
+      : await supabase().from("project_members").insert({ project_id: projectId, ...row }).select("id");
     setSaving(false);
     if (error) return setErr(error.message.includes("row-level") ? "You don't have permission to do that." : error.message);
+    // RLS can silently match 0 rows — treat that as a failure instead of pretending it saved.
+    if (!data?.length) return setErr("Nothing was saved — you may not have permission to edit this person.");
     onDone();
   }
 

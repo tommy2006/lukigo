@@ -340,3 +340,58 @@ Return {"subject": "...", "body": "..."}`;
 };
 
 Object.assign(moduleTasks, sponsorTasks);
+
+// ---------- Volunteer Shifts & Partners ----------
+export interface StaffingInput {
+  shift: { title: string; starts_at: string; ends_at: string; day: string; part: string; open: number; event?: string | null };
+  candidates: { id: string; name: string; available: boolean; hours: number; shifts_this_month: number; department?: string | null }[];
+}
+export interface PartnerDraftInput {
+  project: { name: string; tagline?: string | null; description?: string | null; cause?: string | null; location?: string | null };
+  partner: { name: string; kind?: string | null; contact_name?: string | null; gives?: string | null; gets?: string | null; recent?: string[] };
+  kind: "proposal" | "checkin" | "thanks";
+}
+
+const shiftTasks: Record<string, AITask> = {
+  shift_staffing: {
+    system:
+      "You help high-school student leaders staff volunteer shifts fairly. Prefer people who are available at that time, " +
+      "spread work evenly (fewer recent shifts first), and give newer volunteers chances. Never pick someone marked unavailable unless nobody else is. Return JSON.",
+    prompt: (i: StaffingInput) =>
+      `Shift: ${i.shift.title}${i.shift.event ? ` (event: ${i.shift.event})` : ""}, ${i.shift.day} ${i.shift.part}, ${i.shift.starts_at} to ${i.shift.ends_at}. Open slots: ${i.shift.open}.\n` +
+      `Candidates (data):\n${i.candidates.map((c) => JSON.stringify(c)).join("\n")}\n\n` +
+      `Return {"picks": [{"id": "candidate id", "reason": "short reason"}], "message": "a friendly 2-sentence group-chat message inviting them to sign up"} with at most ${i.shift.open + 2} picks.`,
+    fallback: (i: StaffingInput) => {
+      const picks = [...i.candidates].sort((a, b) => Number(b.available) - Number(a.available) || a.shifts_this_month - b.shifts_this_month || a.hours - b.hours)
+        .slice(0, i.shift.open + 2)
+        .map((c) => ({ id: c.id, reason: `${c.available ? "Usually free then" : "Availability unknown"} · ${c.shifts_this_month} shift${c.shifts_this_month === 1 ? "" : "s"} this month` }));
+      return { picks, message: `Hi team! We still need ${i.shift.open} ${i.shift.open === 1 ? "person" : "people"} for "${i.shift.title}" on ${i.shift.day} (${i.shift.part}). Grab a spot in Lukigo → Volunteer Shifts — thank you!` };
+    },
+  },
+
+  partner_draft: {
+    system:
+      "You write short, warm, professional messages from high-school students running a community project to partner organizations " +
+      "(schools, NGOs, libraries, businesses). Be specific about what each side gives and gets. Return JSON.",
+    maxTokens: 1200,
+    prompt: (i: PartnerDraftInput) => {
+      const what = { proposal: "a partnership proposal email (under 250 words) asking to work together", checkin: "a friendly check-in email (under 150 words) sharing an update and asking how things are going for them", thanks: "a thank-you note (under 150 words) for their support" }[i.kind];
+      return `Write ${what}.\nOur project: ${i.project.name}${i.project.tagline ? ` — ${i.project.tagline}` : ""}. ${i.project.description || ""}\n` +
+        `Partner: ${i.partner.name}${i.partner.kind ? ` (${i.partner.kind})` : ""}${i.partner.contact_name ? `, contact: ${i.partner.contact_name}` : ""}.\n` +
+        `They give us: ${i.partner.gives || "(not set)"}. We give them: ${i.partner.gets || "(not set)"}.\n` +
+        `${i.partner.recent?.length ? `Recent activity: ${i.partner.recent.join("; ")}\n` : ""}\nReturn {"subject": "...", "body": "..."}`;
+    },
+    fallback: (i: PartnerDraftInput) => {
+      const hi = `Dear ${i.partner.contact_name || `${i.partner.name} team`},`;
+      const sign = `\n\nBest regards,\nThe ${i.project.name} team`;
+      const t = {
+        proposal: { subject: `Partnership idea: ${i.project.name} × ${i.partner.name}`, body: `${hi}\n\nWe are high-school students running ${i.project.name}${i.project.tagline ? ` — ${i.project.tagline.toLowerCase()}` : ""}. We think ${i.partner.name} would be a great partner.\n\nWhat we'd love from you: ${i.partner.gives || "[e.g. a venue, mentors, or helping us reach people]"}.\nWhat we can offer: ${i.partner.gets || "[e.g. volunteers, recognition on our posts, a report of our impact]"}.\n\nCould we set up a 15-minute call to talk about it?${sign}` },
+        checkin: { subject: `Update from ${i.project.name}`, body: `${hi}\n\nA quick update: ${i.partner.recent?.[0] || "[share one recent result]"}. Thank you for being part of it.\n\nIs there anything we could do better on our side, or anything coming up we should plan for together?${sign}` },
+        thanks: { subject: `Thank you, ${i.partner.name}!`, body: `${hi}\n\nThank you for ${i.partner.gives || "your support"}. Because of you, [what it made possible]. We'll keep you updated and credit you in our posts.${sign}` },
+      }[i.kind];
+      return t;
+    },
+  },
+};
+
+Object.assign(moduleTasks, shiftTasks);
