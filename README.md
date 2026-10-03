@@ -126,7 +126,7 @@ lukigo/
 └── index.html                ← original "Kết Nối Tài Trợ" prototype (merged into Lukigo)
 ```
 
-### Run it yourself
+### How to build the app yourself
 1. Create a Supabase project and run `foundry/supabase/schema.sql`, then `patch-001` to `patch-005` in order. Turn off email confirmation for quick sign-ups.
 2. In `foundry/`, run `cp .env.example .env.local`. Fill in the Supabase URL and publishable key, and optionally the `AI_*` variables.
 3. Run `npm install`, then `npm run dev`. On Vercel, set **Root Directory = `foundry`**.
