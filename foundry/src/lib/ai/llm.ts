@@ -3,7 +3,9 @@
 
 const BASE = process.env.AI_BASE_URL;        // e.g. http://<verda-ip>:8000/v1
 const KEY = process.env.AI_API_KEY || "none";
-const MODEL = process.env.AI_MODEL || "mistralai/Mistral-Large-3-675B-Instruct-2512-NVFP4";
+const RAW_MODEL = (process.env.AI_MODEL || "mistralai/Mistral-Large-3-675B-Instruct-2512-NVFP4").trim();
+// Mistral's hosted API uses hyphenated ids (mistral-large-latest); tolerate "mistral_large_latest".
+const MODEL = BASE?.includes("api.mistral.ai") ? RAW_MODEL.replace(/_/g, "-") : RAW_MODEL;
 
 export const aiConfigured = () => !!BASE;
 

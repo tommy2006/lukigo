@@ -11,7 +11,7 @@ export async function GET() {
     key_set: !!process.env.AI_API_KEY,
     key_length: process.env.AI_API_KEY?.length ?? 0,
     key_has_whitespace: /\s/.test(process.env.AI_API_KEY || ""),
-    model: process.env.AI_MODEL || "(default)",
+    model: process.env.AI_MODEL || "(default)", // raw value; llm.ts normalizes for api.mistral.ai
   };
   if (!base) return NextResponse.json({ ...info, ok: false, error: "AI_BASE_URL is not set in this deployment" });
   try {
