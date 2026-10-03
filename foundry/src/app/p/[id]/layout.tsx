@@ -6,7 +6,7 @@ import { LayoutDashboard, Blocks, ChevronLeft, Copy } from "lucide-react";
 import { RequireAuth } from "@/components/auth";
 import { ProjectProvider, useProject } from "@/components/project-context";
 import { MODULE_MAP } from "@/lib/modules";
-import { ROLE_MAP, roleLabel, canEditModules } from "@/lib/roles";
+import { ROLE_MAP, roleLabel, canEditModules, visibleModules } from "@/lib/roles";
 import { Badge, Empty, Spinner, cx } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import { PortalButton } from "@/components/portal/portal-button";
@@ -34,7 +34,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const base = `/p/${project.id}`;
   const nav = [
     { href: base, label: "Overview", icon: <LayoutDashboard className="size-4" />, color: "#f4efe9" },
-    ...stack.map((s) => {
+    ...visibleModules(stack, me).map((s) => {
       const m = MODULE_MAP[s.id];
       return { href: `${base}/${s.id}`, label: m.name, icon: <span className="text-base leading-none">{m.emoji}</span>, color: m.color };
     }),

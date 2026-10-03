@@ -10,7 +10,7 @@ import { JoinRequests } from "@/components/portal/join-requests";
 import { useProject } from "@/components/project-context";
 import { supabase } from "@/lib/supabase";
 import { MODULE_MAP, hasModule, hasSub } from "@/lib/modules";
-import { ROLE_MAP, roleLabel } from "@/lib/roles";
+import { ROLE_MAP, roleLabel, can, visibleModules } from "@/lib/roles";
 import type { Donation, EventRow, Fundraiser, SocialPost, SponsorLead, Task, Transaction } from "@/lib/types";
 import { Avatar, Badge, Button, Card, PageHeader, Progress, Tip, cx, fmtDate, fmtMoney } from "@/components/ui";
 
@@ -70,12 +70,12 @@ function Overview() {
     { done: active.length > 1, label: "Invite your team", hint: `Share code ${project.join_code}`, href: hasModule(stack, "hr") ? `${base}/hr` : undefined },
     { done: (d?.events.length || 0) > 0, label: "Create your first event", hint: "Fundraiser, workshop, drive…", href: hasModule(stack, "events") ? `${base}/events` : undefined },
     { done: (d?.tasks.some((t) => t.assignee_member_id) ?? false), label: "Break it into tasks & assign owners", hint: "Try ✨ Plan with AI", href: hasModule(stack, "events") ? `${base}/events` : undefined },
-    { done: (d?.fundraisers.length || 0) > 0, label: "Set a fundraising goal", hint: "Even $200 is a great start", href: hasModule(stack, "fundraising") ? `${base}/fundraising` : undefined },
+    { done: (d?.fundraisers.length || 0) > 0, label: "Set a fundraising goal", hint: "Even $200 is a great start", href: hasModule(stack, "fundraising") && can(me, "fundraising", "view") ? `${base}/fundraising` : undefined },
     { done: (d?.accounts || 0) > 0, label: "Connect your socials", hint: "Get a daily AI digest", href: hasModule(stack, "publicity") ? `${base}/publicity` : undefined },
   ].filter((c) => c.href);
   const progress = checklist.length ? (checklist.filter((c) => c.done).length / checklist.length) * 100 : 100;
 
-  const tiles = stack.map((s) => {
+  const tiles = visibleModules(stack, me).map((s) => {
     const m = MODULE_MAP[s.id];
     let stat = "", sub = "";
     if (d) {

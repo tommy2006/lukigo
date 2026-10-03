@@ -9,7 +9,7 @@ import { useProject } from "@/components/project-context";
 import { supabase } from "@/lib/supabase";
 import { askAI } from "@/lib/ai/client";
 import { activeLinks, hasModule, hasSub } from "@/lib/modules";
-import { can } from "@/lib/roles";
+import { can, canAssignTo, canReassign } from "@/lib/roles";
 import type { Donation, EventRow, Fundraiser, Member, Task, Transaction } from "@/lib/types";
 import type { PlannedTask } from "@/lib/ai/tasks/modules";
 import { AIBox, Avatar, Badge, Button, Card, Empty, Field, Input, Modal, PageHeader, Progress, Select, Spinner, Textarea, Tip, cx, fmtDate, fmtMoney, todayISO } from "@/components/ui";
@@ -38,8 +38,8 @@ function EventDetail({ eventId }: { eventId: string }) {
   const links = activeLinks(stack);
   const linked = (from: string, to: string) => links.some((l) => l.from === from && l.to === to);
   const hrLinked = linked("hr", "events");
-  const fundLinked = linked("events", "fundraising");
-  const finLinked = linked("events", "finance");
+  const fundLinked = linked("events", "fundraising") && can(me, "fundraising", "view");
+  const finLinked = linked("events", "finance") && can(me, "finance", "view");
   const canEdit = can(me, "events", "edit");
   const canManage = can(me, "events", "manage");
 
@@ -149,7 +149,7 @@ function EventDetail({ eventId }: { eventId: string }) {
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
         <div className="space-y-6 min-w-0">
-          <TaskSection event={event} tasks={tasks} setTasks={setTasks} reload={loadTasks} members={members} hrLinked={hrLinked}
+          <TaskSection event={event} tasks={tasks} setTasks={setTasks} reload={loadTasks} members={members} me={me} hrLinked={hrLinked}
             grouped={hasSub(stack, "events", "prep_checklist")} canEdit={canEdit} canManage={canManage} onPlan={hasSub(stack, "events", "ai_planner") && canEdit ? () => setPlanOpen(true) : undefined} />
           {hasSub(stack, "events", "post_mortem") && (
             <PostMortem event={event} desc={desc} review={review} tasks={tasks} canEdit={canEdit} onSaved={setEvent} />
@@ -166,7 +166,7 @@ function EventDetail({ eventId }: { eventId: string }) {
       </div>
 
       <Modal open={editing} onClose={() => setEditing(false)} title="Edit event">
-        <EventForm projectId={project.id} event={{ ...event, description: desc || null }} members={members} showBudget={hasModule(stack, "finance")}
+        <EventForm projectId={project.id} event={{ ...event, description: desc || null }} members={members} showBudget={hasModule(stack, "finance") && can(me, "finance", "view")}
           onCancel={() => setEditing(false)}
           onSaved={async (e) => {
             // keep the post-mortem notes attached
@@ -181,8 +181,8 @@ function EventDetail({ eventId }: { eventId: string }) {
 }
 
 // ---------------------------------------------------------------- tasks
-function TaskSection({ event, tasks, setTasks, reload, members, hrLinked, grouped, canEdit, canManage, onPlan }: {
-  event: EventRow; tasks: Task[]; setTasks: (t: Task[]) => void; reload: () => Promise<void>; members: Member[]; hrLinked: boolean; grouped: boolean; canEdit: boolean; canManage: boolean; onPlan?: () => void;
+function TaskSection({ event, tasks, setTasks, reload, members, me, hrLinked, grouped, canEdit, canManage, onPlan }: {
+  event: EventRow; tasks: Task[]; setTasks: (t: Task[]) => void; reload: () => Promise<void>; members: Member[]; me: Member | null; hrLinked: boolean; grouped: boolean; canEdit: boolean; canManage: boolean; onPlan?: () => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [f, setF] = useState({ title: "", category: "general", priority: "medium", due_date: "", assignee_member_id: "" });
@@ -244,7 +244,7 @@ function TaskSection({ event, tasks, setTasks, reload, members, hrLinked, groupe
                 <Select className="w-auto" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>{TASK_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}</Select>
                 <Select className="w-auto" value={f.priority} onChange={(e) => setF({ ...f, priority: e.target.value })}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></Select>
                 <Input className="w-auto" type="date" value={f.due_date} onChange={(e) => setF({ ...f, due_date: e.target.value })} />
-                {hrLinked && <Select className="w-auto" value={f.assignee_member_id} onChange={(e) => setF({ ...f, assignee_member_id: e.target.value })}><option value="">Unassigned</option>{members.filter((m) => m.status === "active").map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}</Select>}
+                {hrLinked && <Select className="w-auto" value={f.assignee_member_id} onChange={(e) => setF({ ...f, assignee_member_id: e.target.value })}><option value="">Unassigned</option>{members.filter((m) => m.status === "active" && canAssignTo(me, m)).map((m) => <option key={m.id} value={m.id}>{m.id === me?.id ? `${m.full_name} (me)` : m.full_name}</option>)}</Select>}
                 <Button type="submit" className="ml-auto">Add</Button>
               </div>
             </div>
@@ -259,7 +259,7 @@ function TaskSection({ event, tasks, setTasks, reload, members, hrLinked, groupe
       ) : (
         <div className="space-y-1">
           {catFilter && <div className="text-xs text-ink-3 mb-2">Showing {CAT_MAP[catFilter]?.label} only · <button className="text-accent" onClick={() => setCatFilter(null)}>show all</button></div>}
-          {visible.map((t) => <TaskRow key={t.id} t={t} members={members} hrLinked={hrLinked} canEdit={canEdit} canManage={canManage} patch={(p) => patch(t, p)} remove={() => remove(t)} />)}
+          {visible.map((t) => <TaskRow key={t.id} t={t} members={members} me={me} hrLinked={hrLinked} canEdit={canEdit} canManage={canManage} patch={(p) => patch(t, p)} remove={() => remove(t)} />)}
         </div>
       )}
       {tasks.length > 0 && <div className="mt-4"><Tip>Click the circle to mark a task done, or click the status pill to cycle To do → In progress → Done.</Tip></div>}
@@ -269,11 +269,13 @@ function TaskSection({ event, tasks, setTasks, reload, members, hrLinked, groupe
 
 const NEXT: Record<string, Task["status"]> = { todo: "in_progress", in_progress: "done", done: "todo", blocked: "in_progress" };
 
-function TaskRow({ t, members, hrLinked, canEdit, canManage, patch, remove }: { t: Task; members: Member[]; hrLinked: boolean; canEdit: boolean; canManage: boolean; patch: (p: Partial<Task>) => void; remove: () => void }) {
+function TaskRow({ t, members, me, hrLinked, canEdit, canManage, patch, remove }: { t: Task; members: Member[]; me: Member | null; hrLinked: boolean; canEdit: boolean; canManage: boolean; patch: (p: Partial<Task>) => void; remove: () => void }) {
   const cat = CAT_MAP[t.category || "general"] || CAT_MAP.general;
   const st = TASK_STATUS[t.status] || TASK_STATUS.todo;
   const overdue = t.due_date && t.status !== "done" && t.due_date < todayISO();
   const done = t.status === "done";
+  const current = members.find((m) => m.id === t.assignee_member_id) || null;
+  const mayReassign = canEdit && canReassign(me, current);
   return (
     <motion.div layout className={cx("group flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl px-2 py-2 hover:bg-white/[0.03]", done && "opacity-60")}>
       <button disabled={!canEdit} onClick={() => patch({ status: done ? "todo" : "done" })}
@@ -292,13 +294,13 @@ function TaskRow({ t, members, hrLinked, canEdit, canManage, patch, remove }: { 
         <input type="date" value={t.due_date || ""} onChange={(e) => patch({ due_date: e.target.value || null })}
           className={cx("bg-transparent text-xs font-mono w-[7.5rem] outline-none", overdue ? "text-bad" : "text-ink-3")} />
       ) : <span className={cx("text-xs font-mono", overdue ? "text-bad" : "text-ink-3")}>{fmtDate(t.due_date)}</span>}
-      {hrLinked && (canEdit ? (
+      {hrLinked && (mayReassign ? (
         <select value={t.assignee_member_id || ""} onChange={(e) => patch({ assignee_member_id: e.target.value || null })}
-          className="bg-transparent text-xs text-ink-2 outline-none max-w-32 cursor-pointer">
+          className="bg-transparent text-xs text-ink-2 outline-none max-w-32 cursor-pointer" title="Assign">
           <option value="" className="bg-[#16121f]">Unassigned</option>
-          {members.filter((m) => m.status === "active" || m.id === t.assignee_member_id).map((m) => <option key={m.id} value={m.id} className="bg-[#16121f]">{m.full_name}</option>)}
+          {members.filter((m) => (m.status === "active" && canAssignTo(me, m)) || m.id === t.assignee_member_id).map((m) => <option key={m.id} value={m.id} className="bg-[#16121f]">{m.id === me?.id ? `${m.full_name} (me)` : m.full_name}</option>)}
         </select>
-      ) : <span className="text-xs text-ink-3">{members.find((m) => m.id === t.assignee_member_id)?.full_name || "Unassigned"}</span>)}
+      ) : <span className="text-xs text-ink-3" title={canEdit && current ? `Only ${current.full_name}'s leaders can reassign this` : undefined}>{current?.full_name || "Unassigned"}</span>)}
       {canManage && <button onClick={remove} className="text-ink-3 hover:text-bad opacity-0 group-hover:opacity-100"><Trash2 className="size-3.5" /></button>}
     </motion.div>
   );

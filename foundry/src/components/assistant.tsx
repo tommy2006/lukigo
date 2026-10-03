@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, Send, Sparkles, X, RotateCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MODULE_MAP } from "@/lib/modules";
-import { roleLabel } from "@/lib/roles";
+import { roleLabel, visibleModules } from "@/lib/roles";
 import type { EventRow, Task } from "@/lib/types";
 import { useProject } from "./project-context";
 import { cx, todayISO } from "./ui";
@@ -42,7 +42,7 @@ export function Assistant() {
     const events = (e.data as EventRow[]) || [];
     return {
       project: project.name, tagline: project.tagline, cause: project.cause, location: project.location,
-      role: me ? roleLabel(me) : "member", modules: stack.map((s) => MODULE_MAP[s.id]?.name).filter(Boolean),
+      role: me ? roleLabel(me) : "member", modules: visibleModules(stack, me).map((s) => MODULE_MAP[s.id]?.name).filter(Boolean),
       members: members.filter((m) => m.status === "active").length, today: todayISO(), page: path.split("/").pop(),
       my_open_tasks: ((t.data as Task[]) || []).map((x) => ({ title: x.title, due: x.due_date, event: events.find((ev) => ev.id === x.event_id)?.name ?? null })),
       upcoming_events: events.map((ev) => ({ name: ev.name, date: ev.starts_at?.slice(0, 10) })),

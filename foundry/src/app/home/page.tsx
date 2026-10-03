@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { askAI } from "@/lib/ai/client";
 import type { EventRow, Member, Project, Task } from "@/lib/types";
 import { MODULE_MAP } from "@/lib/modules";
-import { ROLE_MAP, roleLabel } from "@/lib/roles";
+import { ROLE_MAP, roleLabel, visibleModules } from "@/lib/roles";
 import { AIBox, Badge, Button, Card, Empty, Field, Input, Modal, Progress, Tip, fmtDate, todayISO } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import { PortalButton } from "@/components/portal/portal-button";
@@ -146,7 +146,7 @@ function Home() {
                           <div className="font-extrabold text-xl mt-3 group-hover:text-accent transition">{p.name}</div>
                           {p.tagline && <div className="text-sm text-ink-3">{p.tagline}</div>}
                           <div className="flex gap-1 mt-3">
-                            {(p.modules?.stack || []).map((s) => (
+                            {visibleModules(p.modules?.stack || [], m).map((s) => (
                               <span key={s.id} title={MODULE_MAP[s.id]?.name} className="size-6 rounded-md grid place-items-center text-xs" style={{ background: MODULE_MAP[s.id]?.color }}>{MODULE_MAP[s.id]?.emoji}</span>
                             ))}
                           </div>
