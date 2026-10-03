@@ -10,6 +10,7 @@ import { ROLE_MAP, roleLabel, canEditModules } from "@/lib/roles";
 import { Badge, Empty, Spinner, cx } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import { PortalButton } from "@/components/portal/portal-button";
+import { ProjectSwitcher } from "@/components/project-switcher";
 
 export default function ProjectLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -44,10 +45,9 @@ function Shell({ children }: { children: React.ReactNode }) {
           <Link href="/home" className="flex items-center gap-2 text-ink-3 hover:text-ink text-sm"><ChevronLeft className="size-4" /><Logo small /></Link>
           <PortalButton className="!h-7 !px-2.5 !text-[12px]" />
         </div>
-        <div className="px-2 mb-4">
-          <div className="text-3xl mb-1">{project.emoji}</div>
-          <div className="font-extrabold text-lg leading-tight">{project.name}</div>
-          {me && <Badge color={ROLE_MAP[me.role]?.color} className="mt-2">{roleLabel(me)}</Badge>}
+        <div className="mb-4">
+          <ProjectSwitcher current={project} />
+          {me && <div className="px-1 mt-2 flex items-center gap-1.5 text-[11px] text-ink-3">Your role <Badge color={ROLE_MAP[me.role]?.color}>{roleLabel(me)}</Badge></div>}
         </div>
         {nav.map((n) => {
           const active = n.href === base ? path === base : path.startsWith(n.href);
@@ -73,9 +73,11 @@ function Shell({ children }: { children: React.ReactNode }) {
       </aside>
       <main className="flex-1 min-w-0">
         {/* mobile top nav */}
-        <div className="md:hidden flex gap-2 overflow-x-auto p-3 border-b border-line">
-          <Link href="/home" className="text-ink-3 px-2 py-1 text-sm">←</Link>
+        <div className="md:hidden p-3 pb-0 flex gap-2 items-center">
+          <div className="flex-1 min-w-0"><ProjectSwitcher current={project} compact /></div>
           <PortalButton className="shrink-0" />
+        </div>
+        <div className="md:hidden flex gap-2 overflow-x-auto p-3 border-b border-line">
           {nav.map((n) => <Link key={n.href} href={n.href} className="shrink-0 rounded-lg bg-panel px-3 py-1.5 text-sm">{n.label}</Link>)}
         </div>
         <div className="max-w-6xl mx-auto px-5 md:px-10 py-8 md:py-10">{children}</div>

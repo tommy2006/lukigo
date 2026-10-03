@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, LogIn, LogOut, CalendarDays, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 import { RequireAuth, useAuth } from "@/components/auth";
@@ -16,7 +16,7 @@ import { PortalButton } from "@/components/portal/portal-button";
 import type { HomeSummaryInput } from "@/lib/ai/tasks/core";
 
 export default function HomePage() {
-  return <RequireAuth><Home /></RequireAuth>;
+  return <RequireAuth><Suspense><Home /></Suspense></RequireAuth>;
 }
 
 type Mem = Member & { projects: Project };
@@ -30,7 +30,7 @@ function Home() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(useSearchParams().get("join") === "1");
 
   const load = useCallback(async () => {
     const sb = supabase();
@@ -121,6 +121,12 @@ function Home() {
                 {summary?.headline}
               </AIBox>
 
+              <div className="flex items-end justify-between -mb-2">
+                <div>
+                  <div className="font-extrabold text-lg">Your projects <span className="font-mono text-ink-3 text-sm">{mems.length}</span></div>
+                  <div className="text-xs text-ink-3">Click a card to open its workspace. Inside, use the project name at the top of the sidebar to switch.</div>
+                </div>
+              </div>
               <div className="grid md:grid-cols-2 gap-4">
                 {mems.map((m, i) => {
                   const p = m.projects;

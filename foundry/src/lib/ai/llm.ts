@@ -17,12 +17,14 @@ export const aiConfigured = () => !!BASE;
 export async function chat(system: string, user: string, opts: { json?: boolean; maxTokens?: number } = {}): Promise<string> {
   if (!BASE) throw new Error("AI_BASE_URL not set");
   const tried = new Set<string>();
+  let rateRetries = 0;
   for (;;) {
     tried.add(activeModel);
     try {
       return await callModel(activeModel, system, user, opts);
     } catch (e) {
       const msg = String((e as Error).message);
+      if (/LLM 429/.test(msg) && rateRetries < 2) { rateRetries++; await new Promise((r) => setTimeout(r, 1200 * rateRetries)); continue; }
       const next = FALLBACK_MODELS.find((m) => !tried.has(m));
       if (/tier_not_allowed|invalid_model|not available/i.test(msg) && next) { activeModel = next; continue; }
       throw e;
