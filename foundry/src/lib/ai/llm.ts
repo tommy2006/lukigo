@@ -30,7 +30,7 @@ export async function chat(system: string, user: string, opts: { json?: boolean;
   }
 }
 
-async function callModel(model: string, system: string, user: string, opts: { json?: boolean; maxTokens?: number }): Promise<string> {
+export async function callModel(model: string, system: string, user: string, opts: { json?: boolean; maxTokens?: number }): Promise<string> {
   const res = await fetch(`${BASE!.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${KEY}` },

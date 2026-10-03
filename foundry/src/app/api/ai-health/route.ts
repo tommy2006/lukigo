@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chat, currentModel } from "@/lib/ai/llm";
+import { callModel, currentModel } from "@/lib/ai/llm";
 
 // Diagnostic: is the LLM configured and reachable? Never returns the key.
 export async function GET() {
@@ -14,10 +14,11 @@ export async function GET() {
     model: process.env.AI_MODEL || "(default)", // raw value; llm.ts normalizes for api.mistral.ai
   };
   if (!base) return NextResponse.json({ ...info, ok: false, error: "AI_BASE_URL is not set in this deployment" });
-  try {
-    const out = await chat("Reply with the single word: pong", "ping", { maxTokens: 5 });
-    return NextResponse.json({ ...info, ok: true, model_in_use: currentModel(), reply: out.slice(0, 40) });
-  } catch (e) {
-    return NextResponse.json({ ...info, ok: false, error: String((e as Error).message).slice(0, 300) });
+  const probes: Record<string, string> = {};
+  for (const m of ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"]) {
+    try { probes[m] = "OK: " + (await callModel(m, "Reply with one word: pong", "ping", { maxTokens: 5 })).slice(0, 20); }
+    catch (e) { probes[m] = String((e as Error).message).replace(/\{[\s\S]*"message":"([^"]*)"[\s\S]*/, "$1").slice(0, 120); }
+    await new Promise((r) => setTimeout(r, 1500));
   }
+  return NextResponse.json({ ...info, model_in_use: currentModel(), probes });
 }
