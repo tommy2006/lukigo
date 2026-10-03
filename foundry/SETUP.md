@@ -1,4 +1,4 @@
-# Foundry — setup
+# Lukigo — setup
 
 ## 1. Supabase (≈5 min)
 1. supabase.com → **New project** (any region near you; save the DB password).
@@ -37,7 +37,9 @@ Ready in ~30-60 min. Then set `AI_BASE_URL=http://<verda-ip>:8000/v1`, `AI_API_K
 
 Test: `curl http://<ip>:8000/v1/models -H "Authorization: Bearer YOUR_SECRET"`
 
-**Plan B**: `AI_BASE_URL=https://api.mistral.ai/v1`, `AI_MODEL=mistral-large-latest`, `AI_API_KEY=<La Plateforme key>`.
+**Plan B (Mistral API)**: `AI_BASE_URL=https://api.mistral.ai/v1`, `AI_MODEL=mistral-large-latest` (needs the Scale plan for Large), `AI_API_KEY=<key>`.
+**Plan B2 (Groq — what the live demo uses)**: `AI_BASE_URL=https://api.groq.com/openai/v1`, `AI_MODEL=openai/gpt-oss-120b`, `AI_API_KEY=gsk_...`.
+If a configured model is retired or not in your plan, the app automatically falls back to the best chat model the provider serves (see `src/lib/ai/llm.ts`).
 **Plan C**: leave `AI_BASE_URL` empty; AI features use built-in fallbacks ("offline mode").
 
 ## Demo script

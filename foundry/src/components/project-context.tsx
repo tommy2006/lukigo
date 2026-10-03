@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import { supabase } from "@/lib/supabase";
 import type { Member, Project, StackItem } from "@/lib/types";
 import { useAuth } from "./auth";
+import { setAIContext } from "@/lib/ai/client";
 
 export interface ProjectCtx {
   project: Project;
@@ -23,7 +24,7 @@ export function useProject() {
 }
 
 export function ProjectProvider({ id, children, fallback, notFound }: { id: string; children: React.ReactNode; fallback: React.ReactNode; notFound: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, reloadProfile } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [state, setState] = useState<"loading" | "ok" | "missing">("loading");
@@ -31,7 +32,8 @@ export function ProjectProvider({ id, children, fallback, notFound }: { id: stri
   const reloadMembers = useCallback(async () => {
     const { data } = await supabase().from("project_members").select("*").eq("project_id", id).order("joined_at");
     setMembers((data as Member[]) || []);
-  }, [id]);
+    reloadProfile(); // contact edits sync to the account profile (DB trigger) — refresh it here too
+  }, [id, reloadProfile]);
 
   const reload = useCallback(async () => {
     const { data } = await supabase().from("projects").select("*").eq("id", id).maybeSingle();
@@ -42,6 +44,10 @@ export function ProjectProvider({ id, children, fallback, notFound }: { id: stri
   }, [id, reloadMembers]);
 
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    setAIContext(project ? { project: project.name, location: project.location, cause: project.cause } : null);
+    return () => setAIContext(null);
+  }, [project]);
 
   if (state === "loading") return <>{fallback}</>;
   if (state === "missing" || !project) return <>{notFound}</>;

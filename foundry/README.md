@@ -1,4 +1,4 @@
-# Foundry — build & run your community service project
+# Lukigo — build & run your community service project
 
 Hack4Humanity · Track A.1 (NGO Operating System).
 

@@ -24,7 +24,7 @@ export function Builder() {
   const params = useSearchParams();
   const projectId = params.get("project");
   const [stack, setStack] = useState<StackItem[]>([]);
-  const [meta, setMeta] = useState({ name: "", tagline: "", emoji: "🌱", color: COLORS[0], description: "", cause: "community" });
+  const [meta, setMeta] = useState({ name: "", tagline: "", emoji: "🌱", color: COLORS[0], description: "", cause: "community", location: "" });
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<ModuleId | null>(null);
   const [dragging, setDragging] = useState<ModuleId | null>(null);
@@ -39,7 +39,7 @@ export function Builder() {
         const p = data as Project | null;
         if (p) {
           setStack(p.modules?.stack || []);
-          setMeta({ name: p.name, tagline: p.tagline || "", emoji: p.emoji || "🌱", color: p.color || COLORS[0], description: p.description || "", cause: p.cause || "community" });
+          setMeta({ name: p.name, tagline: p.tagline || "", emoji: p.emoji || "🌱", color: p.color || COLORS[0], description: p.description || "", cause: p.cause || "community", location: p.location || "" });
         }
       } else {
         const raw = sessionStorage.getItem(DRAFT_KEY);
@@ -47,7 +47,7 @@ export function Builder() {
           const d = JSON.parse(raw) as Draft;
           setStack(d.stack || []);
           setReasons(d.reasons || {});
-          setMeta((m) => ({ ...m, name: d.name || "", tagline: d.tagline || "", emoji: d.emoji || "🌱", description: d.description || "", cause: d.cause || "community" }));
+          setMeta((m) => ({ ...m, name: d.name || "", tagline: d.tagline || "", emoji: d.emoji || "🌱", description: d.description || "", cause: d.cause || "community", location: d.location || "" }));
         }
       }
       setLoaded(true);
@@ -98,7 +98,7 @@ export function Builder() {
     setSaving(true);
     const sb = supabase();
     if (projectId) {
-      const { error } = await sb.from("projects").update({ modules: { stack }, name: meta.name, tagline: meta.tagline, emoji: meta.emoji, color: meta.color, description: meta.description }).eq("id", projectId);
+      const { error } = await sb.from("projects").update({ modules: { stack }, name: meta.name, tagline: meta.tagline, emoji: meta.emoji, color: meta.color, description: meta.description, location: meta.location || null }).eq("id", projectId);
       setSaving(false);
       if (error) { setErr(error.message); return; }
       router.push(`/p/${projectId}`);
@@ -109,6 +109,7 @@ export function Builder() {
       });
       setSaving(false);
       if (error) { setErr(error.message); return; }
+      if (meta.location) await sb.from("projects").update({ location: meta.location }).eq("id", data);
       sessionStorage.removeItem(DRAFT_KEY);
       router.push(`/p/${data}?welcome=1`);
     }
@@ -172,10 +173,11 @@ export function Builder() {
             <Card className="space-y-3">
               <div className="font-bold">{projectId ? "Project details" : "Name your project"}</div>
               <div className="flex gap-2">
-                <Input value={meta.emoji} onChange={(e) => setMeta({ ...meta, emoji: e.target.value })} className="w-14 text-2xl text-center px-1" />
+                <Input value={meta.emoji} onChange={(e) => setMeta({ ...meta, emoji: e.target.value })} className="!w-14 shrink-0 text-2xl text-center px-1" />
                 <Input value={meta.name} onChange={(e) => setMeta({ ...meta, name: e.target.value })} placeholder="Project name" className="font-bold" />
               </div>
               <Input value={meta.tagline} onChange={(e) => setMeta({ ...meta, tagline: e.target.value })} placeholder="One-line tagline" />
+              <Input value={meta.location} onChange={(e) => setMeta({ ...meta, location: e.target.value })} placeholder="📍 City, country (tailors AI to your area)" />
               <Field label="Description"><Textarea value={meta.description} onChange={(e) => setMeta({ ...meta, description: e.target.value })} className="min-h-20 text-[13px]" placeholder="What does your project do?" /></Field>
               <div className="flex gap-2">
                 {COLORS.map((c) => (

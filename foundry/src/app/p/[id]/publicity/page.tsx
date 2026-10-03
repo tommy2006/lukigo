@@ -71,7 +71,7 @@ function Publicity() {
             <h2 className="text-lg font-bold mb-3">Posts</h2>
             {published.length === 0 ? (
               <Empty emoji="📸" title="No posts logged yet" action={canEdit && <Button onClick={() => setPostModal("new")}><Plus className="size-4" />Log your first post</Button>}>
-                Every time your team posts, log it here with its likes/comments/shares (or paste a batch). Foundry will tell you what&apos;s working.
+                Every time your team posts, log it here with its likes/comments/shares (or paste a batch). Lukigo will tell you what&apos;s working.
               </Empty>
             ) : (
               <div className="space-y-2">

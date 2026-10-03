@@ -57,7 +57,7 @@ function planTemplate(i: EventPlanInput): PlannedTask[] {
 export const moduleTasks: Record<string, AITask> = {
   event_plan: {
     system:
-      "You are Foundry's event planner, helping high-school students run community service events. " +
+      "You are Lukigo's event planner, helping high-school students run community service events. " +
       `Break the event into 10-16 concrete, small, actionable prep tasks. Each task has a category from: ${CATEGORIES.join(", ")}. ` +
       "days_before is how many days before the event the task should be done (0 = day of, -1 = day after). Return JSON only.",
     maxTokens: 1600,
@@ -130,7 +130,7 @@ export const moduleTasks: Record<string, AITask> = {
         summary: posted.length
           ? `${todays.length ? `You posted ${todays.length} time${todays.length === 1 ? "" : "s"} today. ` : "Nothing went out today yet. "}` +
             (best ? `Your top post on ${best.platform || "socials"} ("${best.content.slice(0, 60)}${best.content.length > 60 ? "…" : ""}") got ${best.likes} likes, ${best.comments} comments and ${best.shares} shares.` : "")
-          : "Add your accounts and log a few posts so Foundry can track how people react.",
+          : "Add your accounts and log a few posts so Lukigo can track how people react.",
         highlights: best ? [`Top post: ${best.platform || "post"} — ${eng(best)} weighted engagement`, `${i.accounts.reduce((n, a) => n + (a.followers || 0), 0).toLocaleString()} total followers across ${i.accounts.length} account(s)`] : [],
         suggestions: [
           ...(next ? [`Start a countdown for ${next.name}${next.starts_at ? ` (${next.starts_at.slice(0, 10)})` : ""} — post a teaser today.`] : []),
@@ -221,3 +221,177 @@ export const moduleTasks: Record<string, AITask> = {
     },
   },
 };
+
+// ---------- sponsors ----------
+export interface SponsorProjectInfo { name: string; tagline?: string | null; description?: string | null; cause?: string | null; location?: string | null; brief: { org_type?: string; region?: string; beneficiaries?: string; budget?: string; needs?: string[]; achievements?: string; timeline?: string } }
+export interface SponsorFindInput { project: SponsorProjectInfo; extra?: string; exclude: string[] }
+export interface SponsorCandidate { name: string; type: string; country: string; focus: string; fit: string; approach: string; typicalAmount: string; cycle: string; website: string; fitScore: number; confidence: "high" | "medium" | "low" }
+export interface SponsorLetterInput { project: SponsorProjectInfo; kind: "intro" | "proposal" | "follow" | "thanks"; language: string; lead: { name: string; type?: string | null; country?: string | null; contact_name?: string | null; focus?: string | null; fit?: string | null; approach?: string | null; amount_asked?: number | null } }
+
+export const SPONSOR_TYPES = ["Foundation", "Corporate CSR", "Government / embassy", "UN / multilateral", "International NGO", "Competition / prize", "Local business", "Community club", "In-kind / mentor partner"];
+
+function briefText(p: SponsorProjectInfo) {
+  const b = p.brief || {};
+  return [
+    `Name: ${p.name}`, p.tagline && `One-liner: ${p.tagline}`, p.description && `Description: ${p.description}`, p.cause && `Cause: ${p.cause}`,
+    p.location && `Based in: ${p.location}`, b.org_type && `Team type: ${b.org_type}`, b.region && `Where we seek sponsors: ${b.region}`,
+    b.beneficiaries && `Beneficiaries: ${b.beneficiaries}`, b.budget && `Budget: ${b.budget}`, b.needs?.length && `Needs: ${b.needs.join(", ")}`,
+    b.achievements && `Achievements so far: ${b.achievements}`, b.timeline && `Timeline: ${b.timeline}`,
+  ].filter(Boolean).join("\n");
+}
+
+// Real, well-known programs that support youth / grassroots community projects. Used offline only.
+const FALLBACK_SPONSORS: (Omit<SponsorCandidate, "fitScore" | "fit"> & { needs: string[] })[] = [
+  { name: "The Awesome Foundation", type: "Foundation", country: "Global (local chapters)", focus: "Small, creative community projects", approach: "Find your nearest chapter on their site and submit the short online application.", typicalAmount: "1,000 USD", cycle: "Monthly, per chapter", website: "https://www.awesomefoundation.org", confidence: "high", needs: ["Cash"] },
+  { name: "The Pollination Project", type: "Foundation", country: "United States (funds globally)", focus: "Seed grants for grassroots changemakers", approach: "Apply for a seed grant online; describe your first concrete milestone and budget.", typicalAmount: "500-1,000 USD", cycle: "Rolling", website: "https://thepollinationproject.org", confidence: "high", needs: ["Cash"] },
+  { name: "Gloria Barron Prize for Young Heroes", type: "Competition / prize", country: "United States", focus: "Young people (8-18) leading service projects", approach: "Nominate your project leader with a description of impact so far and references.", typicalAmount: "10,000 USD award", cycle: "Annual (spring deadline)", website: "https://barronprize.org", confidence: "high", needs: ["Cash", "Media"] },
+  { name: "Prudential Emerging Visionaries", type: "Corporate CSR", country: "United States", focus: "Youth solutions to financial and societal challenges", approach: "Check eligibility and apply online with a short pitch of your project.", typicalAmount: "Up to 15,000 USD + mentorship", cycle: "Annual", website: "", confidence: "medium", needs: ["Cash", "Mentorship/expertise", "Travel/scholarship"] },
+  { name: "Your local Rotary Club", type: "Community club", country: "Global (local clubs)", focus: "Local community service and youth leadership", approach: "Email the local club president and ask for 5 minutes at a weekly meeting to pitch your project.", typicalAmount: "200-2,000 USD or in-kind help", cycle: "Rolling", website: "https://www.rotary.org", confidence: "high", needs: ["Cash", "Venue", "Mentorship/expertise", "Implementation partner"] },
+  { name: "Your local Lions Club", type: "Community club", country: "Global (local clubs)", focus: "Local service: hunger, vision, environment, youth", approach: "Contact a nearby Lions Club and ask about co-hosting or sponsoring your next event.", typicalAmount: "100-1,000 USD or volunteers", cycle: "Rolling", website: "https://www.lionsclubs.org", confidence: "high", needs: ["Cash", "Implementation partner", "In-kind goods"] },
+  { name: "Walmart Community Grants", type: "Corporate CSR", country: "United States", focus: "Local store grants to schools and nonprofits", approach: "Usually needs a school or nonprofit as applicant: ask your school office to apply on your behalf.", typicalAmount: "250-5,000 USD", cycle: "Quarterly", website: "https://walmart.org", confidence: "medium", needs: ["Cash", "In-kind goods"] },
+  { name: "Ashoka Young Changemakers", type: "International NGO", country: "Global", focus: "Recognizing and connecting young social entrepreneurs", approach: "Read about the program and reach out to your country's Ashoka office about nominations.", typicalAmount: "Network and mentorship (non-cash)", cycle: "Varies by country", website: "https://www.ashoka.org", confidence: "medium", needs: ["Mentorship/expertise", "Media"] },
+  { name: "Jane Goodall's Roots & Shoots", type: "International NGO", country: "Global", focus: "Youth-led projects for people, animals and environment", approach: "Register your group as a Roots & Shoots project and watch for their mini-grant calls.", typicalAmount: "Small grants (varies)", cycle: "Periodic", website: "https://rootsandshoots.org", confidence: "medium", needs: ["Cash", "Mentorship/expertise", "Media"] },
+  { name: "Global Fund for Children", type: "Foundation", country: "United States (funds globally)", focus: "Grassroots organizations serving children and youth", approach: "They fund established local groups by invitation: partner with a local NGO and introduce yourselves.", typicalAmount: "Multi-year partner grants", cycle: "Invitation-based", website: "https://globalfundforchildren.org", confidence: "medium", needs: ["Cash", "Implementation partner"] },
+  { name: "Local supermarket / bakery / bank branch", type: "Local business", country: "Your city", focus: "Community goodwill and local visibility", approach: "Walk in with a 1-page flyer, ask for the manager, and offer their logo on your posters and Instagram.", typicalAmount: "50-500 USD or donated goods", cycle: "Anytime", website: "", confidence: "medium", needs: ["In-kind goods", "Cash", "Venue"] },
+];
+
+const LETTER_KINDS: Record<string, string> = {
+  intro: "a short first-contact email introducing the team and project and asking whether the project fits their funding priorities and who to talk to (under 220 words)",
+  proposal: "a one-page sponsorship/grant proposal letter: problem, solution, activities, measurable outcomes, budget request and how funds are used, why this sponsor, what recognition/reporting the sponsor gets (under 450 words)",
+  follow: "a polite follow-up email after no reply to an earlier message, adding one new concrete detail about the project (under 150 words)",
+  thanks: "a thank-you letter for agreeing to support the project, confirming next steps and how the team will report results (under 200 words)",
+};
+
+export const sponsorTasks: Record<string, AITask> = {
+  sponsor_find: {
+    system: "You are an experienced fundraising researcher helping student and grassroots community projects find REAL sponsors, grant-makers and partners. You never invent organizations. Reply with JSON only.",
+    maxTokens: 2500,
+    prompt: (i: SponsorFindInput) => {
+      const region = i.project.brief?.region || (i.project.location ? `${i.project.location} (local) plus programs open globally` : "programs open globally");
+      return `A team of students / a small community group needs sponsors, grant-makers and partner organizations for the project below.
+
+PROJECT BRIEF:
+${briefText(i.project)}
+${i.extra ? `\nEXTRA INSTRUCTIONS FROM THE TEAM:\n${i.extra}\n` : ""}${i.exclude?.length ? `\nALREADY ON THEIR LIST - do not suggest these again:\n${i.exclude.slice(0, 80).join("; ")}\n` : ""}
+Suggest exactly 8 organizations or funding programs that are a realistic fit. Rules:
+- Only real organizations/programs you are confident exist. Never invent names, programs or amounts.
+- Prefer ones that actually fund or partner with youth, student or grassroots/community projects in: ${region}.
+- Mix types where sensible: ${SPONSOR_TYPES.join(", ")}.
+- Be realistic about scale: student projects usually get 100-10,000 USD; match the project's budget.
+- "website": official homepage URL only if you are sure of it, otherwise "".
+- "typicalAmount": typical grant size if known (e.g. "1,000-5,000 USD"), else "".
+- "cycle": when/how often they accept applications if known, else "".
+- "confidence": "high" if confident it is active and open to this kind of applicant, "medium" if likely, "low" if uncertain or possibly discontinued.
+- "fit" = why this project fits (1-2 sentences). "approach" = concrete first step (which program, who to email, what to prepare), 1-2 sentences.
+
+Return {"items": [{"name": string, "type": one of ${JSON.stringify(SPONSOR_TYPES)}, "country": string (HQ country), "focus": string (under 15 words), "fit": string, "approach": string, "typicalAmount": string, "cycle": string, "website": string, "fitScore": integer 1-100, "confidence": "high"|"medium"|"low"}]}`;
+    },
+    fallback: (i: SponsorFindInput) => {
+      const ex = new Set((i.exclude || []).map((n) => n.trim().toLowerCase()));
+      const needs = i.project?.brief?.needs || [];
+      const items: SponsorCandidate[] = FALLBACK_SPONSORS.filter((s) => !ex.has(s.name.toLowerCase()))
+        .map(({ needs: n, ...s }) => {
+          const hit = n.filter((x) => needs.includes(x));
+          return {
+            ...s,
+            fitScore: Math.min(92, 55 + hit.length * 12 + (s.confidence === "high" ? 8 : 0)),
+            fit: `${s.focus}. A good match for ${i.project?.name || "your project"}${hit.length ? ` since you need ${hit.join(" & ").toLowerCase()}` : ""}. (Offline suggestion from a general list: double-check eligibility.)`,
+          };
+        })
+        .sort((a, b) => b.fitScore - a.fitScore)
+        .slice(0, 8);
+      return { items };
+    },
+  },
+
+  sponsor_letter: {
+    system: "You write sponsorship emails and letters for student-led community service projects. Specific, warm, professional. Plain text, no markdown. Never invent statistics, partners or achievements. Reply with JSON only.",
+    maxTokens: 1800,
+    prompt: (i: SponsorLetterInput) => {
+      const l = i.lead;
+      return `Write ${LETTER_KINDS[i.kind] || LETTER_KINDS.intro} in ${i.language || "English"}.
+
+SENDER: ${i.project.brief?.org_type || "a student-led community team"}.
+PROJECT BRIEF:
+${briefText(i.project)}
+
+RECIPIENT ORGANIZATION: ${l.name}${l.type ? ` (${l.type})` : ""}${l.country ? `, ${l.country}` : ""}
+${l.contact_name ? `Contact person: ${l.contact_name}\n` : ""}${l.focus ? `Their focus: ${l.focus}\n` : ""}${l.fit ? `Why the project fits them: ${l.fit}\n` : ""}${l.approach ? `Suggested approach: ${l.approach}\n` : ""}${l.amount_asked ? `Support to request: ${l.amount_asked} USD\n` : ""}
+Rules: connect the project to the recipient's own priorities; never invent statistics, partners or achievements not in the brief; put anything the team must fill in inside [square brackets] (e.g. [Your name], [phone number]).
+
+Return {"subject": "...", "body": "..."}`;
+    },
+    fallback: (i: SponsorLetterInput) => {
+      const p = i.project, b = p.brief || {}, l = i.lead;
+      const hi = `Dear ${l.contact_name || `${l.name} team`},`;
+      const about = `I'm writing on behalf of ${p.name}${b.org_type ? `, a ${b.org_type.toLowerCase()}` : ", a student-led project"}${p.location ? ` based in ${p.location}` : ""}. ${p.tagline || p.description || ""}`.trim();
+      const ask = l.amount_asked ? `a contribution of ${Number(l.amount_asked).toLocaleString()} USD` : b.needs?.length ? `support with ${b.needs.join(", ").toLowerCase()}` : "your support";
+      const sign = `\n\nWarm regards,\n[Your name]\n[Role], ${p.name}\n[Email] · [Phone]`;
+      const bodies: Record<string, { subject: string; body: string }> = {
+        intro: { subject: `${p.name}: student project seeking partners`, body: `${hi}\n\n${about}\n\n${l.focus ? `We noticed your focus on ${l.focus.toLowerCase()}, which is close to what we work on. ` : ""}${b.beneficiaries ? `Our work serves ${b.beneficiaries}. ` : ""}${b.achievements ? `So far: ${b.achievements} ` : ""}\n\nWould our project be a fit for your priorities? If so, could you point us to the right person or program? We would be grateful for ${ask}.${sign}` },
+        proposal: { subject: `Sponsorship proposal: ${p.name}`, body: `${hi}\n\n${about}\n\nTHE NEED\n[Describe the problem in 2-3 sentences, with a local fact you can source.]\n\nWHAT WE DO\n${p.description || "[Activities]"}\n\nWHO BENEFITS\n${b.beneficiaries || "[Beneficiaries]"}\n\nTIMELINE\n${b.timeline || "[Timeline]"}\n\nOUR REQUEST\nWe are asking ${l.name} for ${ask}${b.budget ? ` toward our total budget of ${b.budget}` : ""}. [Break down how the money will be used.]\n\nWHAT YOU GET\nYour logo on our materials and social posts, a thank-you at our events, and a short impact report at the end of the project.\n\n${b.achievements ? `TRACK RECORD\n${b.achievements}\n\n` : ""}Thank you for considering us.${sign}` },
+        follow: { subject: `Following up: ${p.name}`, body: `${hi}\n\nI wanted to gently follow up on my earlier message about ${p.name}. Since then, [one new concrete update, e.g. a recent event or number of people reached].\n\nWe would still love to explore whether ${l.name} could offer ${ask}. Happy to share more details or jump on a quick call.${sign}` },
+        thanks: { subject: `Thank you from ${p.name}!`, body: `${hi}\n\nThank you so much for agreeing to support ${p.name}! Your help means we can [what the support makes possible].\n\nNext steps: [confirm how and when funds or goods will arrive]. We will share photos and a short impact report${b.timeline ? ` at the end of ${b.timeline}` : " when the project wraps up"}, and recognize ${l.name} on our posters and social media.${sign}` },
+      };
+      const out = bodies[i.kind] || bodies.intro;
+      return { ...out, body: (i.language && i.language !== "English" ? `[Offline template in English: translate to ${i.language} before sending]\n\n` : "") + out.body };
+    },
+  },
+};
+
+Object.assign(moduleTasks, sponsorTasks);
+
+// ---------- Volunteer Shifts & Partners ----------
+export interface StaffingInput {
+  shift: { title: string; starts_at: string; ends_at: string; day: string; part: string; open: number; event?: string | null };
+  candidates: { id: string; name: string; available: boolean; hours: number; shifts_this_month: number; department?: string | null }[];
+}
+export interface PartnerDraftInput {
+  project: { name: string; tagline?: string | null; description?: string | null; cause?: string | null; location?: string | null };
+  partner: { name: string; kind?: string | null; contact_name?: string | null; gives?: string | null; gets?: string | null; recent?: string[] };
+  kind: "proposal" | "checkin" | "thanks";
+}
+
+const shiftTasks: Record<string, AITask> = {
+  shift_staffing: {
+    system:
+      "You help high-school student leaders staff volunteer shifts fairly. Prefer people who are available at that time, " +
+      "spread work evenly (fewer recent shifts first), and give newer volunteers chances. Never pick someone marked unavailable unless nobody else is. Return JSON.",
+    prompt: (i: StaffingInput) =>
+      `Shift: ${i.shift.title}${i.shift.event ? ` (event: ${i.shift.event})` : ""}, ${i.shift.day} ${i.shift.part}, ${i.shift.starts_at} to ${i.shift.ends_at}. Open slots: ${i.shift.open}.\n` +
+      `Candidates (data):\n${i.candidates.map((c) => JSON.stringify(c)).join("\n")}\n\n` +
+      `Return {"picks": [{"id": "candidate id", "reason": "short reason"}], "message": "a friendly 2-sentence group-chat message inviting them to sign up"} with at most ${i.shift.open + 2} picks.`,
+    fallback: (i: StaffingInput) => {
+      const picks = [...i.candidates].sort((a, b) => Number(b.available) - Number(a.available) || a.shifts_this_month - b.shifts_this_month || a.hours - b.hours)
+        .slice(0, i.shift.open + 2)
+        .map((c) => ({ id: c.id, reason: `${c.available ? "Usually free then" : "Availability unknown"} · ${c.shifts_this_month} shift${c.shifts_this_month === 1 ? "" : "s"} this month` }));
+      return { picks, message: `Hi team! We still need ${i.shift.open} ${i.shift.open === 1 ? "person" : "people"} for "${i.shift.title}" on ${i.shift.day} (${i.shift.part}). Grab a spot in Lukigo → Volunteer Shifts — thank you!` };
+    },
+  },
+
+  partner_draft: {
+    system:
+      "You write short, warm, professional messages from high-school students running a community project to partner organizations " +
+      "(schools, NGOs, libraries, businesses). Be specific about what each side gives and gets. Return JSON.",
+    maxTokens: 1200,
+    prompt: (i: PartnerDraftInput) => {
+      const what = { proposal: "a partnership proposal email (under 250 words) asking to work together", checkin: "a friendly check-in email (under 150 words) sharing an update and asking how things are going for them", thanks: "a thank-you note (under 150 words) for their support" }[i.kind];
+      return `Write ${what}.\nOur project: ${i.project.name}${i.project.tagline ? ` — ${i.project.tagline}` : ""}. ${i.project.description || ""}\n` +
+        `Partner: ${i.partner.name}${i.partner.kind ? ` (${i.partner.kind})` : ""}${i.partner.contact_name ? `, contact: ${i.partner.contact_name}` : ""}.\n` +
+        `They give us: ${i.partner.gives || "(not set)"}. We give them: ${i.partner.gets || "(not set)"}.\n` +
+        `${i.partner.recent?.length ? `Recent activity: ${i.partner.recent.join("; ")}\n` : ""}\nReturn {"subject": "...", "body": "..."}`;
+    },
+    fallback: (i: PartnerDraftInput) => {
+      const hi = `Dear ${i.partner.contact_name || `${i.partner.name} team`},`;
+      const sign = `\n\nBest regards,\nThe ${i.project.name} team`;
+      const t = {
+        proposal: { subject: `Partnership idea: ${i.project.name} × ${i.partner.name}`, body: `${hi}\n\nWe are high-school students running ${i.project.name}${i.project.tagline ? ` — ${i.project.tagline.toLowerCase()}` : ""}. We think ${i.partner.name} would be a great partner.\n\nWhat we'd love from you: ${i.partner.gives || "[e.g. a venue, mentors, or helping us reach people]"}.\nWhat we can offer: ${i.partner.gets || "[e.g. volunteers, recognition on our posts, a report of our impact]"}.\n\nCould we set up a 15-minute call to talk about it?${sign}` },
+        checkin: { subject: `Update from ${i.project.name}`, body: `${hi}\n\nA quick update: ${i.partner.recent?.[0] || "[share one recent result]"}. Thank you for being part of it.\n\nIs there anything we could do better on our side, or anything coming up we should plan for together?${sign}` },
+        thanks: { subject: `Thank you, ${i.partner.name}!`, body: `${hi}\n\nThank you for ${i.partner.gives || "your support"}. Because of you, [what it made possible]. We'll keep you updated and credit you in our posts.${sign}` },
+      }[i.kind];
+      return t;
+    },
+  },
+};
+
+Object.assign(moduleTasks, shiftTasks);

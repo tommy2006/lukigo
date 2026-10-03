@@ -1,5 +1,5 @@
 -- =====================================================================
--- Foundry — Supabase schema. Paste the whole file into the SQL Editor and Run.
+-- Lukigo — Supabase schema. Paste the whole file into the SQL Editor and Run.
 -- Safe to re-run (drops & recreates app tables).
 -- =====================================================================
 

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, LogIn, LogOut, CalendarDays, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 import { RequireAuth, useAuth } from "@/components/auth";
@@ -12,10 +12,11 @@ import { MODULE_MAP } from "@/lib/modules";
 import { ROLE_MAP, roleLabel } from "@/lib/roles";
 import { AIBox, Badge, Button, Card, Empty, Field, Input, Modal, Progress, Tip, fmtDate, todayISO } from "@/components/ui";
 import { Logo } from "@/components/logo";
+import { PortalButton } from "@/components/portal/portal-button";
 import type { HomeSummaryInput } from "@/lib/ai/tasks/core";
 
 export default function HomePage() {
-  return <RequireAuth><Home /></RequireAuth>;
+  return <RequireAuth><Suspense><Home /></Suspense></RequireAuth>;
 }
 
 type Mem = Member & { projects: Project };
@@ -29,7 +30,7 @@ function Home() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(useSearchParams().get("join") === "1");
 
   const load = useCallback(async () => {
     const sb = supabase();
@@ -83,6 +84,7 @@ function Home() {
       <header className="flex items-center justify-between px-6 md:px-10 py-5 border-b border-line">
         <Logo />
         <div className="flex items-center gap-3">
+          <PortalButton />
           <span className="text-sm text-ink-2 max-sm:hidden">{profile?.full_name}</span>
           <Button variant="ghost" size="sm" onClick={() => supabase().auth.signOut()}><LogOut className="size-4" /></Button>
         </div>
@@ -108,7 +110,7 @@ function Home() {
           <div className="space-y-4">
             <Empty emoji="🌱" title="You're not in any projects yet"
               action={<div className="flex justify-center gap-2"><Button onClick={() => router.push("/onboarding")}><Plus className="size-4" /> Found your first project</Button><Button variant="outline" onClick={() => setJoinOpen(true)}>Join with a code</Button></div>}>
-              Got an idea for helping your community? Foundry will walk you through setting it up in about 3 minutes. Or, if a friend already started one, ask them for the 6-letter invite code.
+              Got an idea for helping your community? Lukigo will walk you through setting it up in about 3 minutes. Or, if a friend already started one, ask them for the 6-letter invite code.
             </Empty>
           </div>
         ) : (
@@ -119,6 +121,12 @@ function Home() {
                 {summary?.headline}
               </AIBox>
 
+              <div className="flex items-end justify-between -mb-2">
+                <div>
+                  <div className="font-extrabold text-lg">Your projects <span className="font-mono text-ink-3 text-sm">{mems.length}</span></div>
+                  <div className="text-xs text-ink-3">Click a card to open its workspace. Inside, use the project name at the top of the sidebar to switch.</div>
+                </div>
+              </div>
               <div className="grid md:grid-cols-2 gap-4">
                 {mems.map((m, i) => {
                   const p = m.projects;

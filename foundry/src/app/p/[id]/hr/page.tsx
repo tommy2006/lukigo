@@ -7,6 +7,7 @@ import { useProject } from "@/components/project-context";
 import { supabase } from "@/lib/supabase";
 import { MODULES, hasSub } from "@/lib/modules";
 import { DEPARTMENTS, ROLES, ROLE_MAP, can, roleLabel, type Action } from "@/lib/roles";
+import { DEPARTMENT_FOR_MODULE } from "@/lib/roles";
 import type { Member, Role } from "@/lib/types";
 import { Avatar, Badge, Button, Card, Empty, Field, Input, Modal, PageHeader, Progress, Select, Stat, Textarea, Tip, cx } from "@/components/ui";
 import { NoPerm } from "@/components/modules/shared";
@@ -127,7 +128,7 @@ function HR() {
         {sub("availability") && (
           <Card>
             <h2 className="text-lg font-bold mb-1">Availability <span className="serif italic grad-text font-normal">& scheduling</span></h2>
-            <p className="text-sm text-ink-2 mb-3">Coming soon: everyone marks when they&apos;re free, and Foundry suggests event times the most people can staff.</p>
+            <p className="text-sm text-ink-2 mb-3">Coming soon: everyone marks when they&apos;re free, and Lukigo suggests event times the most people can staff.</p>
             <Tip>For now, ask your team to share free periods in your group chat, and note them in each member&apos;s profile notes.</Tip>
           </Card>
         )}
@@ -160,11 +161,13 @@ function MemberForm({ projectId, m, selfOnly, applicant, onDone }: { projectId: 
     } : {
       ...contact, full_name: v.full_name.trim(), role: v.role, department: v.department || null, title: v.title || null, status: v.status, hours: Number(v.hours) || 0, notes: v.notes || null,
     };
-    const { error } = m
-      ? await supabase().from("project_members").update(row).eq("id", m.id)
-      : await supabase().from("project_members").insert({ project_id: projectId, ...row });
+    const { data, error } = m
+      ? await supabase().from("project_members").update(row).eq("id", m.id).select("id")
+      : await supabase().from("project_members").insert({ project_id: projectId, ...row }).select("id");
     setSaving(false);
     if (error) return setErr(error.message.includes("row-level") ? "You don't have permission to do that." : error.message);
+    // RLS can silently match 0 rows — treat that as a failure instead of pretending it saved.
+    if (!data?.length) return setErr("Nothing was saved — you may not have permission to edit this person.");
     onDone();
   }
 
@@ -376,7 +379,7 @@ function RolesMatrix() {
                 <tr key={r.id} className="border-t border-line">
                   <td className="py-2 pr-3 whitespace-nowrap"><span className="font-semibold" style={{ color: r.color }}>{r.label}</span></td>
                   {MODULES.flatMap((m) => actions.map((a) => {
-                    const own = r.id === "head" && can({ role: r.id, department: ({ hr: "HR", events: "Events", fundraising: "Fundraising", publicity: "Publicity", finance: "Finance" })[m.id] }, m.id, a);
+                    const own = r.id === "head" && can({ role: r.id, department: DEPARTMENT_FOR_MODULE[m.id] }, m.id, a);
                     const ok = can({ role: r.id, department: null }, m.id, a);
                     return (
                       <td key={m.id + a} className="text-center px-1">

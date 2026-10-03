@@ -112,5 +112,41 @@ export async function seedDemo(projectId: string, stack: StackItem[], meId?: str
         { project_id: projectId, kind: "income", category: "merch", amount: 27, description: "9× Sticker pack", occurred_on: date(-6) },
       ]);
     }
+    // --- volunteer shifts ---
+    if (has("shifts")) {
+      const at = (d: number, h: number) => { const x = day(d); x.setHours(h, 0, 0, 0); return x.toISOString(); };
+      const { data: sh } = await sb.from("shifts").insert([
+        { project_id: projectId, event_id: bake?.id, title: "Bake sale table", starts_at: at(9, 11), ends_at: at(9, 13), location: "Cafeteria", slots: 3 },
+        { project_id: projectId, event_id: bake?.id, title: "Setup & signage crew", starts_at: at(9, 9), ends_at: at(9, 11), location: "Cafeteria", slots: 2 },
+        { project_id: projectId, event_id: work?.id, title: "Workshop helpers", starts_at: at(4, 14), ends_at: at(4, 16), location: "Public Library Room B", slots: 4 },
+        { project_id: projectId, title: "Coding Workshop #2 helpers", starts_at: at(-10, 14), ends_at: at(-10, 16), location: "Public Library Room B", slots: 3 },
+      ]).select();
+      const [s1, , s3, s4] = (sh as { id: string }[]) || [];
+      const S = (shift_id: string | undefined, i: number, status = "signed_up", hours: number | null = null) => shift_id ? { shift_id, project_id: projectId, member_id: pick(i), status, hours } : null;
+      await sb.from("shift_signups").insert([S(s1?.id, 1), S(s1?.id, 6), S(s3?.id, 0), S(s3?.id, 5), S(s3?.id, 7), S(s4?.id, 1, "completed", 2), S(s4?.id, 6, "completed", 2), S(s4?.id, 7)].filter((x): x is NonNullable<typeof x> => !!x && !!x.member_id));
+      const avail = { sat: ["am", "pm"], sun: ["pm"], wed: ["eve"] };
+      for (const x of m.slice(0, 5)) await sb.from("project_members").update({ availability: avail }).eq("id", x.id);
+    }
+  }
+
+  // --- partners & beneficiaries ---
+  if (has("partners")) {
+    const { data: ps } = await sb.from("partners").insert([
+      { project_id: projectId, name: "City Public Library", kind: "government", status: "active", contact_name: "Ms. Lan", contact_email: "library@example.org",
+        gives: "Room B every Saturday + projector", gets: "Free coding classes for library members; logo on our posts", agreement_start: date(-60), agreement_end: date(120), owner_member_id: pick(1),
+        log: [{ t: Date.now() - 12 * 864e5, by: "Maya Chen", text: "Hosted Coding Workshop #2", event: "Coding Workshop #2" }, { t: Date.now() - 3 * 864e5, by: "Dana Founder", text: "Confirmed room for Workshop #3" }] },
+      { project_id: projectId, name: "Hoa Khanh Middle School", kind: "school", status: "active", contact_name: "Mr. Tuan (IT teacher)", gives: "Recruits students, lends 10 laptops", gets: "Weekly lessons for Grade 6",
+        agreement_start: date(-45), agreement_end: date(25), owner_member_id: pick(2), log: [{ t: Date.now() - 20 * 864e5, by: "Jordan Okafor", text: "Kick-off meeting with the principal" }] },
+      { project_id: projectId, name: "Joe's Pizza", kind: "business", status: "prospect", contact_name: "Joe", gives: "Pizza for volunteers?", gets: "Shout-out on Instagram", log: [] },
+    ]).select();
+    const [lib, school] = (ps as { id: string }[]) || [];
+    await sb.from("beneficiaries").insert([
+      { project_id: projectId, name: "Grade 6 coding class", kind: "group", people_count: 18, location: "Hoa Khanh Middle School", partner_id: school?.id, contact_name: "Mr. Tuan",
+        needs: "Weekly 1h Scratch lesson, loaner laptops", consent: true, last_contact: date(-6), next_contact: date(1),
+        feedback: [{ t: Date.now() - 6 * 864e5, by: "Maya Chen", text: "Kids loved making their own games — want more art/sound tools.", rating: 5 }] },
+      { project_id: projectId, name: "Saturday library learners", kind: "community", people_count: 12, location: "City Public Library", partner_id: lib?.id,
+        needs: "Beginner-friendly sessions, printed handouts", consent: true, last_contact: date(-10), next_contact: date(-1),
+        feedback: [{ t: Date.now() - 10 * 864e5, by: "Ethan Park", text: "Parents asked for a take-home practice sheet.", rating: 4 }] },
+    ]);
   }
 }

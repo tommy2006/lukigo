@@ -5,21 +5,23 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Copy, ArrowRight, Wand2 } from "lucide-react";
 import { seedDemo } from "@/lib/demo-seed";
+import { ListingCard } from "@/components/portal/listing-card";
+import { JoinRequests } from "@/components/portal/join-requests";
 import { useProject } from "@/components/project-context";
 import { supabase } from "@/lib/supabase";
-import { MODULE_MAP, hasModule } from "@/lib/modules";
+import { MODULE_MAP, hasModule, hasSub } from "@/lib/modules";
 import { ROLE_MAP, roleLabel } from "@/lib/roles";
-import type { Donation, EventRow, Fundraiser, SocialPost, Task, Transaction } from "@/lib/types";
+import type { Donation, EventRow, Fundraiser, SocialPost, SponsorLead, Task, Transaction } from "@/lib/types";
 import { Avatar, Badge, Button, Card, PageHeader, Progress, Tip, cx, fmtDate, fmtMoney } from "@/components/ui";
 
 export default function OverviewPage() {
   return <Suspense><Overview /></Suspense>;
 }
 
-interface Data { events: EventRow[]; tasks: Task[]; fundraisers: Fundraiser[]; donations: Donation[]; posts: SocialPost[]; tx: Transaction[]; accounts: number }
+interface Data { events: EventRow[]; tasks: Task[]; fundraisers: Fundraiser[]; donations: Donation[]; posts: SocialPost[]; tx: Transaction[]; accounts: number; leads: SponsorLead[]; shifts: number; openSpots: number; partners: number; served: number }
 
 function Overview() {
-  const { project, stack, me, members, reloadMembers } = useProject();
+  const { project, stack, me, members, reload, reloadMembers } = useProject();
   const [seeding, setSeeding] = useState(false);
   const [tick, setTick] = useState(0);
   const welcome = useSearchParams().get("welcome");
@@ -37,11 +39,19 @@ function Overview() {
       sb.from("social_posts").select("*").eq("project_id", pid),
       sb.from("transactions").select("*").eq("project_id", pid),
       sb.from("social_accounts").select("id", { count: "exact", head: true }).eq("project_id", pid),
-    ]).then(([e, t, f, dn, p, tx, acc]) => setD({
+      hasModule(stack, "sponsors") ? sb.from("sponsor_leads").select("*").eq("project_id", pid) : Promise.resolve({ data: [] }),
+      hasModule(stack, "shifts") ? sb.from("shifts").select("id,slots,shift_signups(id)").eq("project_id", pid).gte("ends_at", new Date().toISOString()) : Promise.resolve({ data: [] }),
+      hasModule(stack, "partners") ? sb.from("partners").select("id,status").eq("project_id", pid) : Promise.resolve({ data: [] }),
+      hasModule(stack, "partners") ? sb.from("beneficiaries").select("people_count,status").eq("project_id", pid) : Promise.resolve({ data: [] }),
+    ]).then(([e, t, f, dn, p, tx, acc, sl, sh, pa, be]) => setD({
       events: (e.data as EventRow[]) || [], tasks: (t.data as Task[]) || [], fundraisers: (f.data as Fundraiser[]) || [],
-      donations: (dn.data as Donation[]) || [], posts: (p.data as SocialPost[]) || [], tx: (tx.data as Transaction[]) || [], accounts: acc.count || 0,
+      donations: (dn.data as Donation[]) || [], posts: (p.data as SocialPost[]) || [], tx: (tx.data as Transaction[]) || [], accounts: acc.count || 0, leads: (sl.data as SponsorLead[]) || [],
+      shifts: (sh.data || []).length,
+      openSpots: ((sh.data || []) as { slots: number; shift_signups: unknown[] }[]).reduce((n, x) => n + Math.max(0, x.slots - (x.shift_signups?.length || 0)), 0),
+      partners: ((pa.data || []) as { status: string }[]).filter((x) => x.status === "active").length,
+      served: ((be.data || []) as { people_count: number; status: string }[]).filter((x) => x.status !== "completed").reduce((n, x) => n + Number(x.people_count || 0), 0),
     }));
-  }, [project.id, tick]);
+  }, [project.id, tick, stack]);
 
   async function loadDemo() {
     setSeeding(true);
@@ -74,6 +84,13 @@ function Overview() {
       if (s.id === "fundraising") { stat = fmtMoney(raised); sub = goal ? `of ${fmtMoney(goal)} goal` : "raised"; }
       if (s.id === "publicity") { stat = `${d.posts.filter((p) => Date.now() - new Date(p.posted_at).getTime() < 7 * 864e5).length}`; sub = "posts this week"; }
       if (s.id === "finance") { stat = fmtMoney(balance); sub = "current balance"; }
+      if (s.id === "shifts") { stat = `${d.shifts}`; sub = d.openSpots ? `upcoming · ${d.openSpots} open spots` : "upcoming shifts"; }
+      if (s.id === "partners") { stat = `${d.partners}`; sub = hasSub(stack, "partners", "beneficiaries") && d.served ? `active partners · ${d.served} people served` : "active partners"; }
+      if (s.id === "sponsors") {
+        const won = d.leads.filter((l) => l.stage === "won");
+        stat = won.length ? fmtMoney(won.reduce((n, l) => n + Number(l.amount_committed || 0), 0)) : `${d.leads.length}`;
+        sub = won.length ? `committed · ${d.leads.length} sponsors tracked` : "sponsors tracked";
+      }
     }
     return { s, m, stat, sub };
   });
@@ -120,6 +137,10 @@ function Overview() {
         </motion.div>
       )}
 
+      {me && (me.role === "president" || me.role === "vice_president" || (me.role === "head" && me.department === "HR")) && (
+        <JoinRequests projectId={project.id} onDecided={reloadMembers} />
+      )}
+
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {tiles.map(({ s, m, stat, sub }, i) => (
           <motion.div key={s.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
@@ -138,6 +159,8 @@ function Overview() {
           </motion.div>
         ))}
       </div>
+
+      {me && (me.role === "president" || me.role === "vice_president") && <ListingCard project={project} onSaved={reload} />}
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>

@@ -5,7 +5,7 @@ export function Logo({ small }: { small?: boolean }) {
         <span className="rounded-[3px] bg-[#ffb4a2]" /><span className="rounded-[3px] bg-[#ffd88a]" />
         <span className="rounded-[3px] bg-[#a8e6cf]" /><span className="rounded-[3px] bg-[#c3b5ff]" />
       </span>
-      <span>Foundry</span>
+      <span>Lukigo</span>
     </span>
   );
 }
