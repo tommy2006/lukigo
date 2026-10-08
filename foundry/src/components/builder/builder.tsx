@@ -152,7 +152,7 @@ export function Builder() {
             {MODULES.filter((m) => m.core).map((m) => <PaletteBlock key={m.id} m={m} used={inStack.has(m.id)} onAdd={() => add(m.id)} />)}
             <div className="text-[11px] font-bold uppercase tracking-wider text-ink-3 pt-2">Optional add-ons</div>
             {MODULES.filter((m) => !m.core).map((m) => <PaletteBlock key={m.id} m={m} used={inStack.has(m.id)} onAdd={() => add(m.id)} />)}
-            <div className="rounded-xl border border-dashed border-line-2 p-3 text-xs text-ink-3 flex items-center gap-2"><Lock className="size-3.5" /> More modules coming soon (Volunteer shifts, Grants, Partners…)</div>
+            <div className="rounded-xl border border-dashed border-line-2 p-3 text-xs text-ink-3 flex items-center gap-2"><Lock className="size-3.5" /> More blocks coming soon (Grants, Inventory, Impact reports…)</div>
           </aside>
 
           {/* CANVAS */}
